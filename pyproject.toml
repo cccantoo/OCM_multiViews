@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ocm-rock-discontinuity"
+version = "0.1.0"
+description = "OCM rock discontinuity recognition reproduction"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+packages = ["ocm_rock"]

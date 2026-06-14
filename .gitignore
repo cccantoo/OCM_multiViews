@@ -1,0 +1,19 @@
+# 模型文件
+*.pth
+*.pkl
+*.ckpt
+
+# 输出目录
+outputs/
+
+# 大数据文件
+data/pointclouds/*.txt
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
