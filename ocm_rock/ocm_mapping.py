@@ -77,27 +77,16 @@ def optimal_normal_rotation(normals: np.ndarray, cdps: np.ndarray, boundary_dip_
     if len(normals) == 0:
         return normals, np.eye(3), np.zeros(len(cdps), dtype=np.float64)
 
-    score_normals = normals
-    max_score_normals = 120_000
-    if len(normals) > max_score_normals:
-        rng = np.random.default_rng(42)
-        score_ids = rng.choice(len(normals), max_score_normals, replace=False)
-        score_normals = normals[score_ids]
-
     sums = np.zeros(len(cdps), dtype=np.float64)
     rotations = []
     for i, cdp in enumerate(cdps):
         R = rotation_to_z(cdp)
         rotations.append(R)
-        rotated_z = score_normals @ R.T
+        rotated_z = normals @ R.T
         rotated_z = rotated_z[:, 2]
         dips = np.degrees(np.arccos(np.clip(np.abs(rotated_z), -1.0, 1.0)))
         boundary = dips[dips > boundary_dip_angle]
-        if len(boundary) == 0:
-            sums[i] = 0.0
-        else:
-            # Penalize both the number of boundary normals and their closeness to dip=90.
-            sums[i] = float(np.sum(boundary - boundary_dip_angle) + 0.25 * len(boundary))
+        sums[i] = float(np.sum(boundary))
     best = int(np.argmin(sums))
     Rbest = rotations[best]
     rotated_all = hemispherize(normals @ Rbest.T)
