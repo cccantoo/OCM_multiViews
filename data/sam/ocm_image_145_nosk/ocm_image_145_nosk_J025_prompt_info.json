@@ -1,0 +1,151 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbenchlato_nosk\\ocm_image_145_nosk.png",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J025",
+  "interaction_mode": "lasso",
+  "foreground_points": [],
+  "background_points": [],
+  "box_prompt": null,
+  "lasso_points": [
+    [
+      688,
+      528
+    ],
+    [
+      690,
+      523
+    ],
+    [
+      693,
+      517
+    ],
+    [
+      696,
+      511
+    ],
+    [
+      699,
+      507
+    ],
+    [
+      703,
+      504
+    ],
+    [
+      706,
+      499
+    ],
+    [
+      709,
+      494
+    ],
+    [
+      712,
+      490
+    ],
+    [
+      714,
+      484
+    ],
+    [
+      717,
+      480
+    ],
+    [
+      720,
+      475
+    ],
+    [
+      723,
+      471
+    ],
+    [
+      725,
+      466
+    ],
+    [
+      728,
+      471
+    ],
+    [
+      725,
+      475
+    ],
+    [
+      723,
+      480
+    ],
+    [
+      720,
+      484
+    ],
+    [
+      720,
+      489
+    ],
+    [
+      720,
+      494
+    ],
+    [
+      719,
+      499
+    ],
+    [
+      719,
+      504
+    ],
+    [
+      719,
+      509
+    ],
+    [
+      718,
+      514
+    ],
+    [
+      717,
+      519
+    ],
+    [
+      713,
+      522
+    ],
+    [
+      710,
+      526
+    ],
+    [
+      706,
+      530
+    ],
+    [
+      702,
+      533
+    ],
+    [
+      697,
+      535
+    ],
+    [
+      692,
+      536
+    ],
+    [
+      687,
+      538
+    ],
+    [
+      685,
+      533
+    ],
+    [
+      686,
+      528
+    ]
+  ],
+  "sam_score": 0.9278925061225891,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J025_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J025_overlay.png"
+}

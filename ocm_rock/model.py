@@ -14,7 +14,7 @@ def build_maskrcnn(
     min_size: int = 800,
     max_size: int = 1333,
 ):
-    """构建论文使用的 Mask R-CNN 实例分割模型。
+    """构建 Mask R-CNN 实例分割模型。
 
     num_classes=2：背景 + discontinuity。
     """

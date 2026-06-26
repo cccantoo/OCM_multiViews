@@ -1,0 +1,1563 @@
+Rock Mechanics and Rock Engineering (2024) 57:4873–4905
+https://doi.org/10.1007/s00603-024-03804-x
+
+ ORIGINAL PAPER
+
+OCM: an intelligent recognition method of rock discontinuity based
+on optimal color mapping of 3D Point cloud via deep learning
+
+Keshen Zhang1 · Wei Wu1,2,3 · Yongsheng Liu4 · Yong Huang5 · Min Zhang6 · Hehua Zhu1,2,3
+
+Received: 2 November 2023 / Accepted: 23 January 2024 / Published online: 18 March 2024
+© The Author(s), under exclusive licence to Springer-Verlag GmbH Austria, part of Springer Nature 2024
+
+Abstract
+Discontinuities largely influence the mechanical properties of rock joints. However, traditional discontinuity recognition
+methods often require manual intervention during processing. This paper proposes a new deep-learning-based method for
+discontinuity recognition using 3D point clouds. A neighborhood PCA-weighted oriented contraction method is proposed to
+extract point cloud skeletons as discontinuity intersection lines. Then an optimal color mapping (OCM) method is proposed
+to establish the optimal mapping relationship between 3D normal vectors and RGB, converting 3D point clouds to 2D OCM
+images for discontinuity segmentation. The convolutional neural network of Mask R-CNN is adopted to segment discontinui-
+ties from OCM images. Finally, 3D discontinuities can be generated from discontinuity-segmented OCM images. Forty-two
+rock slope image sequences and a rock slope point cloud are collected and labeled, generating 4632 OCM images including
+430,613 discontinuity planes after data augmentation for training. Three cases of rock slopes and rock tunnel excavation
+faces are adopted for testing. The average recognition time per 3D point cloud model is approximately 12 s due to the high
+recognition efficiency of Mask R-CNN for 2D images. The results show the proposed method can recognize discontinuities
+close to manual judgements with high accuracy, good robustness to point cloud density variations, and good adaptability to
+different rock engineering scenarios.
+
+Highlights
+
+• An NPW-OC method is proposed to extract point cloud skeletons.
+• An OCM method is proposed to assign 3D normal vectors with optimal RGB.
+• OCM images are generated to assign discontinuities with different and uniform color.
+• Deep-learning-based method is used for intelligent recognition of discontinuities.
+• Conversion of discontinuity recognition from 3D point clouds to 2D OCM images.
+• The results show good efficiency, accuracy, robustness, and adaptability .
+
+Keywords  Rock discontinuity · Rock slope · Rock tunnel · 3D point cloud · Point cloud contraction · Color mapping · Deep
+learning
+
+* Wei Wu                                                       4 China Railway Tunnel Group Co., Ltd, Guangzhou 511458,
+     weiwu@tongji.edu.cn                                            China
+
+1 College of Civil Engineering, Tongji University,             5 China Railway First Survey and Design Institute Group Co.,
+     Shanghai 200092, China                                         Ltd, Xian 710043, China
+
+2 Key Laboratory of Geotechnical and Underground               6 Shudao Investment Group Co., Ltd, Chengdu 610095, China
+     Engineering of Ministry of Education, Tongji University,
+     Shanghai 200092, China                                                                                                       Vol.:(0123456789)
+
+3 State Key Laboratory of Disaster Reduction in Civil
+     Engineering, Tongji University, Shanghai 200092, China
+4874                                                            K. Zhang et al.
+
+1 Introduction                                                  Caliński–Harabasz index (Caliński and Harabasz 1974;
+                                                                Esmaeilzadeh and Shahriar 2019; Singh et al. 2022a) and
+Discontinuities largely influence the mechanical behaviors      Xie–Beny index (Xie and Beni 1991; Hammah and Curran
+of rock joints (Barton 1978). The international society for     2000; Liu et al. 2022; Yan et al. 2022), etc., for extracting
+rock mechanics (ISRM) proposed ten parameters to quan-          optimal group number and grouping results. However, the
+titatively describe the properties of rock discontinuities,     discontinuity recognition accuracy is heavily dependent on
+including orientation, roughness, aperture, wall strength,      the effects of optimal grouping results which can be incon-
+filling, seepage, spacing, persistence, number of sets, and     sistent among different validity indexes because of their dif-
+block size (Barton 1978). In addition, the geometry of          ferent calculation emphasis.
+discontinuities has been applied to a variety of practices,
+including the hazard identification and monitoring (Her-           The second type of method is designed to directly
+rera et al. 2010; Jones and Hobbs 2021), structural geology     extract discontinuity planes without grouping in advance.
+(Cawood et al. 2017), landslides (Jaboyedoff et al. 2012),      For example, the region-growing method is used to extract
+earthquakes (Rathje and Franke 2016), identification of         the discontinuity planes based on the variation of normals
+fault areas (Chen et al. 2015), mapping ground texture          or curvatures in local surfaces (Wang et al. 2017; Ge et al.
+(Yan et al. 2015), and geospatial analysis of data (Deibe       2018). However, the growing seed location and growing
+et al. 2020; de Oliveira et al. 2021; Kong 2021; Smith and      criteria require to be predefined and modified for different
+Holden 2021). Therefore, accurate recognition of discon-        datasets (Vo et al. 2015). The computational efficiency
+tinuities is essential for the analysis of rock engineering.    is also limited because of the iterative growing process.
+                                                                Random sample consensus (RANSAC) method is also
+   The traditional method relies on the manual visual           used to extract discontinuity planes by iterative estimation
+recognition of discontinuity planes and contact meas-           of plane parameters (Raguram et al. 2013). However,
+urements of engineers to collect geometry data, which is        a threshold to judge whether a point is within a plane is
+time-consuming and easily affected by user bias (Priest         required to be manually fine-tuned for different datasets. The
+1993; Abellán et al. 2014; Gigli et al. 2022). Alternatively,   computational cost is still high because of the iterative nature
+remote sensing methods such as laser scanning and ste-          and the randomness process (Raguram et al. 2013; Liu et al.
+reophotogrammetry have been adopted to collect high-            2019). In addition, the amplitude and phase decomposition
+resolution 3D point clouds for discontinuity recognition        (APD) approach is also proposed for discontinuity plane
+(Ferrero et al. 2016; Chen et al. 2017; Giordan et al. 2018;    detection with the fast Fourier transform (FFT)-based
+Li et al. 2019). Therefore, various methods based on 3D         decomposition of signals (Singh et al. 2022a). However, this
+point clouds have been proposed for discontinuity recogni-      method also requires manual selection of several parameters
+tion (Daghigh et al. 2022). These methods can be mainly         within the optimal range for different datasets.
+divided into two types.
+                                                                   In addition, compared with the traditional machine
+   The first type of discontinuity recognition method           learning methods, the rapid development of deep learning
+requires carrying out orientation grouping in advance, and      techniques and artificial intelligence gives another solution
+the discontinuity planes are then extracted based on the opti-  to improve the accuracy, efficiency, and automation in dis-
+mal orientation grouping results. For instance, Riquelme        continuity plane recognition. As one of the representative
+et al. (2014) adopted a kernel density estimation (KDE) to      techniques in computer vision in deep learning field, the
+recognize the optimal discontinuity sets using two manually     convolution neural network (CNN) has been widely used in
+adjusted parameters of cone filter and max poles filter. Then   many aspects of rock engineering, such as rock type clas-
+the density-based scan algorithm with noise (DBSCAN)            sification (Ran et al. 2019; Alférez et al. 2021; Chen et al.
+method was used to generate independent discontinuities         2023), rock discontinuity trace detection (Chen et al. 2021;
+with two user-defined parameters of ε and min-pts. Kong         Qiao et al. 2022), rock strength prediction (Zhao et al. 2023),
+et al. (2020) adopted the clustering by fast searches an find-  etc. However, because of the lack of large-scale 3D rock dis-
+ing density peaks (CFSFDP) (Rodriguez and Laio 2014)            continuity data with various rock types and the high labeling
+method to perform the optimal orientation grouping using        expense of 3D discontinuity planes, the deep-learning-based
+a user-defined parameter of cutoff distance. The disconti-      method of 3D discontinuity plane recognition has not been
+nuity planes were then recognized using DBSCAN. How-            widely applied.
+ever, these are semi-automatic methods requiring manual
+adjustment of parameters when dealing with different rock          This paper proposes an intelligent recognition method of
+models. In addition, there are automatic methods using          rock discontinuity based on optimal color mapping (OCM)
+clustering validity indexes, such as Silhouette index (Rous-    of 3D point clouds via deep learning. The proposed method
+seeuw 1987; Chen et al. 2016; Ruiz Pereira et al. 2021),        mainly consists of five steps, including step 1 of point cloud
+                                                                preprocessing and discontinuity intersection line extrac-
+                                                                tion, step 2 of normal vector OCM, step 3 of generation of
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                                         4875
+
+OCM images, step 4 of data preparation and Mask R-CNN            Li et al. 2016; Singh et al. 2022b), the Laplacian-based
+model training, and step 5 of discontinuity recognition by       contraction method is used for the extraction of point
+the trained Mask R-CNN model. This paper is organized as         cloud skeletons located on the intersection lines of
+follows: an introduction of rock discontinuity recognition       adjacent discontinuities (Zhang et al. 2020). However,
+methods using 3D point clouds is presented in Sect. 1, the       this method requires point cloud meshing and cannot be
+specific procedure of the proposed method is presented in        directly performed on raw point clouds. Therefore, this
+Sect. 2, the proposed method is applied to three cases in        section proposes a neighborhood principle-component-
+Sect. 3, the method is discussed in Sect. 4 and some conclu-     analysis (PCA)-weighted oriented contraction (NPW-OC)
+sions are drawn in Sect. 5.                                      method to extract intersection line as point cloud skeletons
+                                                                 from raw point clouds without meshing.
+2 Methodology
+                                                                 2.1.1 Normal vector calculation and hemispherization
+This paper proposes an intelligent recognition method of                (step 1.1)
+rock discontinuities based on OCM of 3D point clouds
+via deep learning. The detailed flow chart of the proposed       After obtaining 3D point cloud models, normal vectors
+method is shown in Fig. 1. This method starts with the input     are required to be calculated first. The least square method
+of 3D point cloud models and is mainly composed of five          and the PCA are often used in normal vector estimation
+steps. In step 1, after obtaining 3D point clouds of rock mass,  (Sturzenegger and Stead 2009; Abellán et al. 2014). In
+a neighborhood PCA-weighted oriented contraction (NPW-           addition, there are some adaptive methods to improve
+OC) method is proposed to extract sharp point skeletons as       the robustness of normal vector quality to noises (Wang
+discontinuity intersection lines. In step 2, the OCM method      et al. 2013). In this paper, the PCA method is adopted for
+is proposed to map normal vectors to optimal RGB colors.         normal vector calculation.
+In step 3, the color-mapped point cloud combined with sharp
+point skeletons is used for OCM image generation. In step 4,        Given the point cloud P = {p1, p2, … , pN} (N denotes
+OCM images are manually labeled with ground truth discon-        the point number), then the normal vector of a point
+tinuities and augmented. Next comes a two-stage operation.       p0 ∈ P requires to calculate the covariance matrix as
+In the training stage of step 4, the Mask R-CNN model is
+adopted for training with augmented OCM images and the           Mcov  =   1   ∑ knn          pi − p0  pi − p0  T    ∑3              (1)
+mask images corresponding to labeled OCM images. In the                   knn                                      = ������ie��⃗ie��⃗iT
+recognition stage of step 5, discontinuities are segmented                     i=1
+by the trained Mask R-CNN model using OCM images to                                                                i=1
+generate mask images. Finally in step 5, 3D discontinuities
+are mapped from 3D point cloud models based on the mask          where pi is the ith point of knn nearest points of p0 with
+images of segmented discontinuities.                             Euclidean distance. 1 ≥ 2 ≥ 3 are the eigenvalues and
+                                                                 the normal vector vec0 of p0 is the 3rd eigenvector e��⃗3 of
+   A rock slope case is adopted to illustrate each step of       Mcov . Considering that small knn (e.g., knn=15) can cause
+the proposed method. The rock slope is located in Moun-          significant noise in normal vector calculation and large knn
+tain Lao, Qingdao, China. An Iphone12 mobile phone is            (e.g., knn>30) can significantly smooth local curvatures
+used to take seven images (4032 × 3024) at different loca-       (Riquelme et al. 2014), knn = 20 is set as an initial value
+tions in front of the slope (Fig. 2a). The image sequence is     in this paper. Equation (1) is programmed from scratch in
+then processed by the Meshroom opensource software to            Matlab.
+reconstruct the 3D point cloud model. The region of interest
+(ROI) is shown in the black rectangle in Fig. 2b, which con-        Because normal vector hemispherization is commonly
+tains 397,546 points with the approximate average spacing        used in discontinuity analysis (Jimenez-Rodriguez and
+of adjacent points of 2.20 cm.                                   Sitar 2006), all vectors with z coordinates smaller than
+                                                                 zero are reversed to the upper unit hemisphere.
+2.1 Point cloud preprocessing and discontinuity
+     intersection line extraction (step 1)                       2.1.2 Sharp point detection (step 1.2)
+
+After obtaining the raw point cloud, the preprocessing is        Sharp points are referred to edge points and corner points
+first to be performed. Considering the intersection lines        located in large curvatures (Wang et al. 2013). Therefore,
+of adjacent discontinuity planes are commonly used for           the neighbor angle variation is adopted for the sharp point
+discontinuity segmentation (Khaloo and Lattanzi 2017;            detection.
+
+                                                                    The distance metric is first defined as the acute angle
+                                                                 of normal vectors (Jimenez-Rodriguez and Sitar 2006).
+4876                                                                                                                         K. Zhang et al.
+
+Fig. 1  Flow chart of the proposed method. In and Out denote the input and output data types of each step, respectively
+
+Given the normal vector set Vec = {vec1, vec2, … , vecN} ,      �           �  =          ⎛  ���veci ⋅ vecj���           ⎞   (2)
+the distance metric is defined as                           dist veci,  vecj      arccos⎜⎜⎝  ��veci�����vecj���          ⎟
+                                                                                                                         ⎠⎟
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                       4877
+
+Fig. 2  Data collection and
+processing of a rock slope. a
+
+Image sequence. ROI is in the
+black rectangle region. b 3D
+
+reconstructed point clouds
+
+where veci and vecj denote any two normal vectors. All the        Considering the eigenvalue of PCA indicates the disper-
+arccos calculation in this paper is performed using the acosd  sion degree of the neighbor point distribution along eigen-
+function in Matlab.                                            vector directions (Lee et al. 2006), the eigenvector e��⃗1 cor-
+                                                               responding to the largest eigenvalue 1 is, therefore, used
+   Then the neighbor variation angle i is defined as           to represent the local tangent direction of the point cloud
+                                                               (shown in Figs. 3d and 4). To evaluate the dominance of tan-
+i  =   1   ∑ knn                                        (3)    gent directions, a linear significance parameter u1 is defined
+      knn      dist(veci, vecj)                                as
+
+           j=1
+
+where vecj denotes the normal vector of the jth knn nearest    u1 =            1                                   (5)
+points of pi . The k-nearest searching algorithm is performed
+using the knnsearch function in Matlab.                                1+ 2+ 3
+
+   Finally, the sharp point set Setshp are defined as
+
+Setshp  =  {i|������i  >  1  ∑N          ∈  {1, 2, … , N}}  (4)       In general, the points ( pi in Fig. 5a) far from the skeleton
+                      N      ������j, i                            can result in a larger knn neighbor point distribution length
+                                                               (similar to u1 ) along e��⃗1 than the points ( pcen in Fig. 5a) closer
+                         j=1                                   to the skeleton. Therefore, a parameter wc is defined by u1
+
+   Equation (4) is performed using the find function in        to give points near skeletons large contraction weights as
+Matlab.
+
+                                                               wc = u21                                            (6)
+
+2.1.3 Neighborhood PCA‑weighted oriented contraction             Figure 3e shows the value of wc . It can be seen that wc
+                                                               is smaller at the sharp point away from the skeleton and
+       (step 1.3)                                              larger near the skeleton as expected. Then the NPW-OC is
+                                                               performed using wc to make sharp points move toward the
+The diversity of rock mass and point cloud density can         skeleton. Given a point pi in the point cloud, its weighted
+lead to over sparse sharp points near intersection lines in    contraction point pi′ is defined as
+Sect. 2.1.2, which occupies a large area of discontinuities.
+The uneven distribution of sharp points can also reduce the    pi�  =  ∑kn1n                  � knn �           �  (7)
+continuity of intersection lines. Thus, the point cloud con-                                      wcj pij  − pi
+traction algorithm is considered to extract sharp point skel-             j=1  wcj
+etons as intersection lines. However, traditional point cloud                                 j=1
+contraction algorithms often require meshing and cannot
+be directly performed on raw point clouds (Au et al. 2008;     where pij denotes the jth the nearest point of pi . pi′ is
+Cao et al. 2010; Zhang et al. 2020). Therefore, a NPW-OC       denoted in Fig. 5a.
+method is proposed to achieve the oriented contraction of
+sharp points without meshing. Figure 3b shows the point           To ensure the continuity of the contracted sharp points
+cloud contraction skeleton of Fig. 3a by the proposed          along the skeleton, sharp points are designed to move
+method.                                                        perpendicular to the tangent directions. Therefore, the
+                                                               displacement vector p���i�p��i�⃗′ is projected on e��⃗2 to generate the
+                                                               orientation calibrated point p′i′ as
+4878                                                                                               K. Zhang et al.
+
+Fig. 3  Process of the neighborhood PCA-weighted oriented contraction (NPW-OC). a Sharp points. b The point cloud skeleton of sharp points
+after NPW-OC. c An example set of sharp points. d Tangent vectors of the example sharp points. e wc of example sharp points
+
+                                               p�i� =  p�i − pi   |||e��⃗2 pi� − pi |||     +  pi  (8)
+                                                                 ‖‖‖pi� − pi‖‖‖2‖‖e��⃗2‖‖2
+
+Fig. 4  Eigen values and eigen vectors of PCA  where ‖⋅‖2 denotes the mode length. The oriented contracted
+                                               point pi′′ is shown in Fig. 5a.
+
+                                                  All the sharp points are performed by the NPW-OC
+                                               method based on Eqs. (5) to (8) which are programmed
+                                               from scratch in Matlab. Figure 5a shows the skeleton
+                                               generated by one-time contraction. It can be seen in
+                                               Fig. 5c–d that more contraction times can generate thinner
+                                               and more accurate skeletons. However, large contraction
+                                               times can also reduce the computational efficiency.
+                                               Considering the aim of contraction is to improve the
+                                               accuracy of discontinuity intersection lines without
+                                               quantitative requirements, two-time contraction is used
+                                               as the initial NPW-OC time with the balance between
+                                               accuracy and efficiency.
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4879
+
+Fig. 5  Explanation of NPW-OC process. a Point cloud contraction process. b Contraction results of one-time NPW-OC, c Contraction results of
+two-time NPW-OC. d Contraction results of three-time NPW-OC
+
+2.2 Normal vector optimal color mapping (step 2)             from the point cloud models, we propose an OCM method
+                                                              of normal vectors in this section.
+After obtaining normal vectors, the philosophy of coloring
+with normal vectors implemented by Jaboyedoff et al.             To assign colors to normal vectors, the stereographic
+(2007) can be used to assign colors according to the dip      projection plane of normal vectors is first mapped to HSV
+and dip direction, which can effectively contribute to the    color space and then mapped to the RGB space. In addi-
+structural analysis of rock mass. For the purpose of further  tion, considering the boundary points (Fig. 6a) on the ste-
+improving the quality of normal vector color mapping to       reographic projection plane can cause large difference of
+make it more effective and stable for the segmentation of     colors in the same discontinuity plane (Fig. 6b), an opti-
+discontinuity planes based on their normal vector colors      mal stereographic projection method based on minimum
+4880                                                                                                                  K. Zhang et al.
+
+Fig. 6  RGB color mapping results. a RGB color mapping of normal vectors. b 3D RGB point clouds after color mapping of normal vectors
+(color figure online)
+
+boundary dip angles (MBDA) is proposed to make the                   √
+colors within a single discontinuity as uniform as possible.
+                                                                 S = xi2 + yi2                                        (10)
+
+2.2.1 RGB mapping of normal vectors (step 2.1)                     Equations (9) and (10) are programmed from scratch in
+                                                                 Matlab.
+Hemisphere projection of discontinuity poles (such
+                                                                    Given the HSV value of veci as [H, S, V] , the [R, G, B]
+as discontinuity normal vectors) is often used for the           value is mapped as follows (Smith 1978):
+
+description of orientation distribution (Priest 1985; Jimenez-   1. H = 6 ∗ H
+
+Rodriguez and Sitar 2006). Therefore, normal vectors are         2. I = ﬂoor(H),F = H − I
+
+first projected to the upper unit hemisphere.                    3. M = V × (1 − S) , N = V × (1 − S × F) , K = V × (1 − S × (1 − F))
+
+Normal vectors are then mapped to the HSV space.                                   ⎧  [V  ,  K  ,  M],   if  I  =  0
+                                                                                   ⎪
+HSV space is one of the most classical color spaces. Since                         ⎪ [N, V, M], if I = 1
+
+the HSV space is conical, the one-to-one mapping of                                ⎪  [M,    V,    K],   if  I  =  2
+                                                                                   ⎨  [M,    N,    V ],  if  I  =  3
+normal vectors to HSV values is achieved by setting the          4.  [R, G, B]  =  ⎪
+
+stereographic projection plane onto the HSV horizontal                             ⎪ [K, M, V], if I = 4
+section. HSV is represented by H ∈ [0◦ , 360◦ ] , saturation                       ⎩⎪ [V, M, N], if I = 5
+
+S ∈ [0, 1] , and value V ∈ [0, 1] . To make the color more
+
+distinguishable, the stereographic projection plane is set          In step 2, ﬂoor(x) denotes the integer just less than or
+                                                                 equal to x. Figure 6a denotes the normal vector stereographic
+to coincide with the HSV horizontal section of V = 1 .           projection after RGB mapping, and Fig. 6b denotes the cor-
+                                                                 responding 3D RGB point cloud. The ﬂoor(x) calculation in
+Then normal vectors are mapped based on the relationship         step 2 is performed using the floor function in Matlab, and
+                                                                 other steps are programmed from scratch in Matlab.
+between the stereographic projection plane and the HSV
+
+space.
+
+Specifically, given the normalized normal vector
+
+set Vec = {vec1, vec2, … , vecN} , the coordinate of each
+veci ∈ Vec is veci = xi, yi, zi T , then except for Value = 1 ,
+
+H and S are defined as                                           2.2.2 Optimal transformation of RGB mapping (step 2.2)
+
+      ⎧                 �               �◦                       Hemisphere projection can cause normal vectors with
+                                                                 approximate 90° dip angles to generate large differences
+      ⎪       1 arccos       √ xi           , yi > 0             of dip directions near the boundary of the stereographic
+      ⎪                      � xi2+y2i     �◦                    projection plane. For example, as shown in Fig. 6a, normal
+H=⎨          360                                                 vectors in region I and I� have similar directions, but the
+
+      ⎪                                               (9)
+      ⎪⎩
+          1  −   1   arccos  √ xi           , yi ≤ 0
+                360
+                                 xi2 +y2i
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                                    4881
+
+hemispherical projection causes them to be distributed on               Table 1  CDPs with different subdivision numbers
+both sides of the stereographic projection plane, resulting in
+excessive color differences. This can cause the point color             Subdivision number ndiv  2      3                 4     5
+in the same discontinuity plane non-uniform (Fig. 6b),
+disturbing the color-based segmentation of discontinuities.             CDP number               26     91                341   1321
+Therefore, an optimal transformation of normal vectors                                                                          3.87
+is proposed to make the hemisphere projection of normal                 Mean adjacent angle (°)  19.63  12.62             7.21
+vectors away from the boundary of the stereographic
+projection plane as far as possible, making point colors in             1. Input the initial 20 vertices Vtx = [vtx1, vtx2, … , vtx12]
+the same discontinuity as uniform as possible.                              and 20 triangular patches Pth = [pth1, pth2, … , pth20] of
+                                                                            the ortho icosahedron (Fig. 7a).
+2.2.2.1  Generation of candidate direction points
+                                                                        2. For each pthi ∈ Pth , calculate and normalize the
+(CDPs) based on ortho‑icosahedron subdivision (step                         midpoints Vtxadd = [vtxi1, vtxi2, vtxi3] of each edge of
+                                                                             pthi , then four new triangular patches are generated as
+2.2.1)  Because the optimal transformation of a specific set                 pthadd = [pthi1, pthi2, pthi3] (Fig. 7b).
+of normal vectors is unknown in advance, the candidate
+direction points (CDPs) are proposed to serve as possible               3. Replace pthi in Pth by Pthadd , and merge Vtxadd in Vtx.
+rotation directions in the 3D normal vector space. Then the             4. Repeat step 2 to step 3 ndiv times to generate appropriate
+set of normal vectors are rotated according to each of the
+CDPs’ directions to find one of the CDPs as the optimal                     number of CDPs.
+direction for the RGB mapping of normal vectors according               5. All the points in Vtx and on the upper unit hemisphere
+to the proposed method of minimum boundary dip angles.
+To distribute CDPs uniformly over the entire normal vector                  are selected as CDPs.
+space, the ortho-icosahedron subdivision is used to generate
+CDPs approximately uniformly distributed over the upper                    The subdivision time ndiv decides the number and
+unit hemisphere. Therefore, CDPs are generated using the                the accuracy (the mean angle between adjacent CDPs)
+method of Fekete and Treinish (1990) as                                 of CDPs. As shown in Table 1, the more the CDPs, the
+                                                                        higher the accuracy. However, excessive numbers of
+                                                                        CDPs can reduce the search efficiency of the optimal
+                                                                        CDPs. Considering ISRM recommends 5° as the manual
+                                                                        measurement error of orientation (Barton 1978), 1321
+
+Fig. 7  Subdivision of ortho-icosahedron for CDP generation. a Initial  with ndiv = 5 . d Stereographic projection of initial CDP. e Stereo-
+                                                                        graphic projection of CDP with ndiv = 1 . f Stereographic projection of
+vertices and triangular patches of the ortho-icosahedron. b Ortho-ico-  initial CDP with ndiv = 5
+sahedron subdivision with ndiv = 1 . c Ortho-icosahedron subdivision
+4882                                                                                                                          K. Zhang et al.
+
+CDPs of ndiv = 5 is selected as the default CDPs. The mean                                angles of all normal vectors. The control variable for the
+adjacent angle is 3.87° less than 5°.                                                     rotation is the current z-axis, and the other normal vectors
+
+    The methods in this section are programmed from                                       are performed to follow the same rotation as the current
+
+scratch in Matlab.                                                                        z-axis. The two-axis rotation can uniquely determine the
+
+                                                                                          orientation of the current z-axis rotation. Once the normal
+
+2.2.2.2  Optimal rotation of normal vectors based on mini‑                                vectors have been performed by the same rotation of the
+
+mum boundary dip angles (step 2.2.2)  Normal vectors are                                  current z-axis, the sum of the boundary dip angles of all
+
+required to be distributed away from the boundary of the                                  normal vectors can be uniquely determined. Therefore, a
+
+stereographic projection plane as far as possible to avoid                                two-axis rotation is used instead of a three-axis rotation.
+
+the non-uniform colors in the same discontinuity plane                            3. Rotate Vec using Roti to generate Veci′ , then calculate
+(Fig. 7a, b). Therefore, a method of minimum boundary                                 the sum of dip angle sai of all boundary normal vectors
+dip angle is proposed.                                                                in Veci′,
+
+   Given normal vector set Vec = {vec1, vec2, … , vecN} ,                         4. For each CDP in Vtx , perform step 2 to step
+CDP set Vtx = {vtx1, vtx2, … , vtxM} (M denotes CDP                                   3 to generate the sum of boundary dip angles
+number), the proposed method is performed as follows:                                 Sumang = {sa1, sa2, … , saM} corresponding to all CDPs,
+
+                                                                                  5. Normalize sai ∈ Sumang as
+
+1. According to ISRM’s recommendation to define 5° as                                                    sai − min Sumang
+                                                                                                         Sumang − min Sumang
+    the manual measurement error of orientations, normal                                  sai    =                            (14)
+
+    vectors with dip angles larger than 85° are selected as                                         max
+
+    boundary vectors.                                                             6. The optimal rotation direction is selected as the
+                                                                                      CDPs corresponding to min(Sumang) , then rotate Vec
+2.  Given     a CDP           vtxi ∈ Vtx and the coordinate                           accordingly.
+    vtxi =   xi, yi, zi T ,  calculate the rotation matrix Roti to
+    rotate vtxi to [0, 0, 1]T . First calculate the angle angz that
+
+    rotates vtx1 clockwise around the z-axis to the positive                         To summarize, the main idea of OCM is to find an
+                                                                                  optimal rotation direction to rotate the current normal
+    x-axis as                                                                     vectors so that the sum of the boundary dip angles
+                                                                                  of all normal vectors after the rotation is minimized.
+             ⎧                     �                 �◦                           Specifically, given a possible rotation direction dirp of
+                                                                                  the current z-axis, let the normal vectors follow the same
+    angz  =  ⎪   360◦ − arccos        √ xi               , yi > 0           (11)  rotation of the current z-axis, then calculate the sum of
+             ⎪               �          � xi2 +y2i        yi ≤ 0
+             ⎨
+             ⎪                                    ◦
+             ⎪⎩
+                 arccos √ xi                    ,
+                                   xi2 +yi2
+
+	  Then calculate the angle angy that rotates vtxi                                the boundary dip angles of normal vectors. This involves
+    clockwise around the y-axis to the positive z-axis as                         two main aspects. First, there are countless dirp in the
+                                                                                  whole 3D normal vector space, and the optimal rotation
+
+                        ⎛                            ⎞◦                               direction dirp is unknown in advance for an arbitrary set
+                        ⎜                      ⎟                                      of normal vectors. Therefore, we propose the concept of
+    angy  =  − arccos   ⎜    �   zi            ⎟                            (12) CDPs to approximate all possible dirp in the whole 3D
+                        ⎝⎜ xi2  + yi2        z2i ⎟⎠                                   normal vector space for selecting the optimal dirp . Second,
+                                         +                                            the control variable of the rotation in this method is the
+
+	 Therefore, Roti is defined as                                                   current z-axis. The rotation of the current z-axis can be
+
+             ⎡   ��             0  sin   ��              ⎤⎡        ��             ��      0⎤
+             ⎢    cos angy      1  �cos   angy           ⎥⎢    cos � angz�  − sin� ang�z
+    Roti  =  ⎢⎣        �0 �     0        �0 �            ⎦⎥⎢⎣  sin angz      cos angz     0  ⎥
+                                          a�ngy                � 0�         � �0 �        1  ⎦⎥
+                 − sin� angy�                                                                    �                            (13)
+             ⎡    cos   angy� cos �angz              − cos ang�y sin� angz        sin   angy        ⎤
+          =  ⎢   − sin  �sin a�ngz �         �            � cos �angz� �          cos  �0 �         ⎥
+             ⎢⎣          angy cos angz                                                  angy        ⎦⎥
+                                                      sin angy sin angz
+
+	  It should be noted that a two-axis rotation is required                        uniquely determined by a two-axis rotation, which can also
+    rather than a three-axis rotation. This is because the aim                    uniquely determine the sum of the boundary dip angles.
+    of the rotation is to compute the sum of the boundary dip
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                                              4883
+
+Fig. 8  The optimal and the worst rotation of normal vectors. a Sum     tion. d Stereographic projection of the optimal rotation. e OCM point
+of dip angles of boundary normal vectors of all CDP. b Stereographic    cloud of the optimal rotation
+projection of the worst rotation. c OCM point cloud of the worst rota-
+
+Therefore, the optimal rotation of normal vectors requires              clouds vary with different cases, methods of point cloud
+only a two-axis rotation instead of a three-axis rotation.              direction calibration and image filling are used to generate
+                                                                        standard OCM images.
+   Figure 8a shows the Sumang corresponding to all CDPs.
+Figure 8d, e shows the results of RGB colors mapped with                2.3.1 Direction calibration of point clouds (step 3.1)
+the optimal rotation of normal vectors corresponding to
+min(Sumang) . It can be observed that boundary normal                   In this paper, point cloud OCM images are generated from
+vectors are effectively avoided, and the colors in the same
+discontinuity plane are uniform and homogeneous, which                  OCM points at the xoz viewpoint. To make discontinuities
+facilitates the identification of discontinuities by their colors.
+Comparatively, the results after the worst rotation of normal           as perpendicular to the viewing angle as possible, the point
+vectors corresponding to max(Sumang) are shown in Fig. 8b,
+c. It can be observed that many normal vectors are distrib-             cloud model is rotated around the z-axis to make the overall
+uted near the boundaries of the stereographic projection
+plane, such as the normal vectors in the regions of I − I� and          planar fitted vectors parallel to negative y-axis. Given the
+II − II� , resulting in an non-uniform distribution of colors
+within the same discontinuity plane and making it difficult             overall planar fitted vector vecmean calculated by Eq. (1)
+to distinguish discontinuities by their colors.
+                                                                        using all points, vecmean is  then projected to the               upper unit
+   The methods in this section are programmed from scratch              hemisphere as vecmean =       xm, ym, zm T . Rotate               clockwise
+in Matlab.
+                                                                        around the z-axis to get angle angz that makes vecmean
+2.3 Generation of OCM images (step 3)
+                                                                        negatively parallel with the y-axis. Then angz is defined as
+After the OCM of normal vectors, the corresponding OCM
+point cloud can be obtained. This section generates OCM                          ⎧            �                 �◦
+images of OCM point clouds to facilitate the recognition of
+Mask R-CNN. Considering the direction and density of point                       ⎪   180◦     + arccos √ ym                  ,  xm  >  0
+                                                                                 ⎪            � � xm2 +y2m                      xm  ≤  0
+                                                                        angz  =  ⎨                                        ◦               (15)
+                                                                                 ⎪
+                                                                                 ⎩⎪  180◦     − arccos √ ym                  ,
+                                                                                                      xm2 +ym2
+
+                                                                           Equation (15) is programmed using the acosd function in
+                                                                        Matlab. The point cloud P is rotated clockwise around the
+                                                                        z-axis according to angz to obtain P′ , and the point cloud
+4884                                                                                                                             K. Zhang et al.
+
+Fig. 9  Illustration of filling length (FL) and void pixels. a–c Rectangle filling region with FL of 1, 3 and 5. Blue rectangle regions denote filling
+regions of a pixel. d Void pixel illustration. Black pixel i1 ∼ i6 represent void pixels around pixel i (color figure online)
+
+Fig. 10  OCM image generation with different FL. a–c OCM images filling with FL of 1, 3, and 5. d–f Void pixels corresponding to FL of 1, 3,
+and 5
+
+OCM image is generated based on the x and z coordinates of       leading to discontinuous colors on the same discontinuity
+all the points in P′ and their corresponding colors (Fig. 10a).  plane. Therefore, this section performs image size calibration
+                                                                 and image filling for point clouds.
+   It should be noted that in the recognition stage of the
+proposed method, the point cloud orientation calibration            Given the point cloud coordinate set after Sect. 2.3.1 as
+needs to be run automatically (e.g., Fig. 10a). While in the
+data labeling of the training stage, the direction calibration   Pcoord = { x1, x2, … , xN T , y1, y2, … , yN T , z1, z2, … , zN T }
+can be replaced by manual point cloud rotations to get
+the visually most convenient viewpoint for labeling (e.g.,       and the corresponding RGB set as
+Fig. 11i).                                                       RGB = { r1, r2, … , rN T , g1, g2, … , gN T , b1, b2, … , bN T }  .
+                                                                 Let the reference OCM image length Limg = 800 , then the
+2.3.2 Image size calibration and image filling of OCM           calibrated image size is calculated as follows.
+       images (step 3.2)
+                                                                    First, normalize the coordinates xi, yi, zi T ∈ Pcoord of point
+Because the point cloud varies in size, it first needs to be     pi as
+mapped to a standard OCM image size to facilitate training
+and recognition. In addition, considering the point cloud is     ⎧                    xi� = xi − min (x)
+often sparse with different intervals, mapping each point as     ⎪                    yi� = yi
+only one pixel will result in voids in the image (Fig. 10a),     ⎪   xi  =         �  max[max   − min (y)       ×       �  +  1  (16)
+                                                                 ⎨   yi  =  round�                              ×  Limg�   +  1
+                                                                 ⎪                              xi�                Limg
+                                                                 ⎩⎪
+                                                                                                (x�),max (y�)]
+                                                                                                   yi�
+                                                                            round
+                                                                                      max[max (x�),max (y�)]
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4885
+
+Fig. 11  Data collection and processing examples of the proposed method. a–d Images of rock slopes. e–h ROI of 3D reconstructed point clouds.
+i–l OCM images obtained using the methods from Sects. 2.1 to 2.3. m–p Discontinuity ground truth by manual labeling using software Labelme
+
+where round indicates rounding to the nearest integer and             cloud by setting V = 1 , avoiding the point cloud having the
+is performed using the round function in Matlab. Then the             same color as the black background of the OCM image,
+image size is set as H = max(y) and W = max(x).                       which further reduces the disturbance of non-ROI regions
+                                                                      during discontinuity recognition.
+   Next, perform the initial generation of OCM images
+based on the pixel filling. Given a zero image matrix Img                A small FL can make the intervals in OCM images
+with the shape of [H, W, 3] , the corresponding RGB value             affect registration (Fig. 8a). However, a large FL can cause
+of xi, yi, zi T is ri, gi, bi T . Then round xi, yi, zi T and fill    the excessive overlap of pixels and reduce generation
+ri, gi, bi T to the rectangle pixel region with the filling length    efficiency. Therefore, a void ratio is defined to measure
+FL and the center location of height zi and width xi in Img           the interval extent of OCM images.
+(Fig. 9). During the filling process, set ri, gi, bi T as [0, 0, 0]T
+if point pi belongs to the sharp point set Setshp generated in           The concept of void pixels is defined as black pixels
+Sect. 2.1.2. After all the points in Pcoord are performed by          located at the 8 neighbor pixels of a non-black pixel. For
+filling, the OCM image can be generated.                              example, as shown in Fig. 9d, the void pixel near the blue
+                                                                      i pixel is the black pixel of i1 ∼ i6 . The white pixel loca-
+   There are two reasons for masking non-ROI regions                  tions in Fig. 10d–f denote the void pixels corresponding
+of the OCM image with black. First, it can reduce the                 to Fig. 10a–c, respectively. The void ratio is defined to
+interference of non-ROI regions on the discontinuity                  evaluate the filling extent of non-black pixels. Given Nvd
+recognition in ROI regions. Second, the RGB mapping in                the number of void pixels and Nnb the number of non-black
+Sect. 2.2.1 keeps assigning non-black colors to the point             pixels, then the void ratio is defined as
+4886                                                                                                         K. Zhang et al.
+
+ratiovd  =  Nvd                                 (17)                 Table 2  Dataset description for training, validation and testing
+            Nnb
+                                                                     Dataset      Case number Date type      Data object
+
+   Figure 10a–c shows the OCM images with different                  Training set 30   1 point cloud and 29  Rock slope
+void ratios. It shows that the void ratio of 0.45 can cause                              image sequences
+large numbers of void pixels, resulting in the discrete              Validation set 9                        Rock slope
+distribution of color pixels in discontinuities. It also shows                         9 image sequences     Rock slope
+that ratiovd = 0.07 of FL = 3 can generate OCM images                Testing set  4
+with continuous color distribution in discontinuities.                                 4 image sequences
+However, the ratiovd = 0.06 of FL = 5 is almost the same
+as ratiovd = 0.07 of FL = 3 , indicating FL = 5 causes more          respectively. Table 2 shows the specific information of each
+overlapping of pixels and redundant filling calculation              dataset. For each point cloud model, the method of Sects.
+expense. Therefore, the default ratiovd is set as 0.1. The point     2.1–2.3 was used to generate point cloud OCM images. A
+cloud filling requires to be performed with the FL sequence          total of 4,415 discontinuity planes were labeled for all OCM
+of [1, 3, 5, … ]T until ratiovd ≤ 0.1.                               images. Through data enhancement, a total of 4,632 valid
+                                                                     point cloud OCM images were obtained, including a total of
+2.4 Data collection and processing (step 4.1)                       430,613 discontinuity planes.
+
+2.4.1 Dataset description (step 4.1.1)                              2.4.2 Discontinuity labeling based on OCM images (step
+                                                                            4.1.2)
+
+The dataset of this paper includes 43 3D point cloud mod-            The Labelme software (Wada 2023) is used to manually
+els of rock slopes. Forty-two models are rock slope data             and interactively annotate the 43 point cloud OCM images.
+(Fig. 11a–d) collected from Yangkou ring road in Moun-               The process of labeling mainly requires visual judgements
+tain Lao, Qingdao, China. In the acquisition process, 4–8            to segment regions with similar colors into discontinuity
+images were first taken at different angles in front of the rock     plane polygons. Discontinuity planes are also assigned with
+mass using an Iphone12 mobile phone with the resolution              different indexes when labeling. In addition, sharp points
+of 4032 × 3024. Then the image sequence was sent into the            located near the intersection lines of adjacent discontinuity
+Meshroom (Griwodz et al. 2021) opensource 3D reconstruc-             planes can serve as the auxiliary remind of labeling. The
+tion software (https://​github.​com/​alice​vision/​Meshr​oom) to     result of labeling are mask images containing discontinuity
+reconstruct the 3D point clouds. Specifically, after dragging        polygons with different indexes. Figure 11m–p shows
+the image sequence into Meshroom, click the start button             the labeling results of Fig. 11i–l. It should be noted that
+on the top of the software interface to carry out a fully auto-      the color of Fig. 11i is a little different from Fig. 10a–c.
+matic 3D reconstruction, then export the XYZ and RGB                 This is because Fig. 10a–c is color mapped using the
+information of the point cloud using the default resolution          automatic direction calibration method of Sect. 2.3.1. All
+(The specific operations can refer to Meshroom’s tutorial            the OCM images must be performed by the automatic
+at https://​sketc​hfab.​com/​blogs/​commu​nity/​tutor​ial-​meshr​    direction calibration in the recognition stage without any
+oom-f​ or-b​ eginn​ ers). The txt format of point clouds is used as  manual intervention. But Fig. 11i is color mapped in the
+the default, and the reference densities of point cloud cases        training stage, allowing to replace the automatic direction
+are described in Sect. 3. In this paper, the only input data         calibration by manual rotation of the point cloud for labeling
+to Meshroom is the image sequence, and other parameters              convenience (Sect. 2.3.1).
+such as camera internal and external parameters are auto-
+matically calculated and matched by Meshroom using the               2.4.3 Augmentation by transformation of HSV, affine,
+built-in camera parameter database. Finally, after obtaining
+the point cloud model, ROI of the point cloud was manu-                     and flipping for OCM images and mask images (step
+ally cropped or split into different point cloud models in the
+CloudCompare software. Figure 11e–h shows the ROI point                     4.1.3)
+cloud of Fig. 11a–d. In addition, a publicly available bench-
+mark point cloud model was also adopted for analyzation.             Image augmentation is applied to expand the dataset for
+This rock slope was located in Ouray, Colorado, US and was           overfitting reduction and generalization improvement
+scanned by Lato et al (2013) using a laser scanner. The raw          of Mask R-CNN. In this paper, three data augmentation
+data include 1,515,722 points.                                       methods are used, including HSV transformation, affine
+                                                                     transformation, and image flipping.
+   The 43 rock slopes were divided into a training set, a vali-
+dation set, and a testing set with the ratio of 70%, 20%, 10%,          The purpose of HSV transformation is to improve
+                                                                     the model’s performance to recognize different colors.
+                                                                     Because the method in this paper essentially identifies
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4887
+
+discontinuity planes by the relative color values instead                are set to [−15◦, 15◦] and [−90◦, 90◦] , respectively. The
+of the absolute color values between adjacent disconti-                  maximum range of translation is set to be half of the side
+nuity planes in the point cloud OCM images, the HSV                      length of images. In this paper, the scaling transformation
+transformation can increase the model’s perception to                    is not required because all images are uniformly sized
+the relative color values and reduce the overfitting to the              before entering the Mask R-CNN model. The total affine
+absolute color values. Therefore, the HSV transforma-                    transformation of each image is the combination of
+tion used in this paper refers to transforming the Hue val-              the above transformations. In addition, the same affine
+ues with the S and V values unchanged. Ten H values of                   transformation needs to be applied to the pair of point
+[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] are adopted for the     cloud OCM images and mask images.
+HSV transformation of each OCM image. The nine HSV
+transformations of Fig. 11i are shown in Fig. 12 (the rest                  Image flipping is performed after the HSV and affine
+one is Fig. 11i itself).                                                 transformations. Horizontal flipping and vertical flipping of
+                                                                         an OCM image are performed with the probability of 0.5,
+   The affine transformation is then performed on all HSV-               respectively. Similar to affine, both the OCM image and the
+transformed images. The purpose of affine transformation                 corresponding mask image are required to be performed by
+is to increase the diversity of discontinuity plane                      the same flipping transformation.
+morphology. An affine transformation often includes
+shearing, translation, rotation, and scaling. To control                    Figure 13 shows the affine and flipping transformation
+the deformation of discontinuity planes in a relatively                  results of Fig. 12.
+reasonable range, the angular ranges of shear and rotation
+                                                                            The methods in this section are programmed from scratch
+                                                                         in Python.
+
+Fig. 12  Data augmentation of HSV transformation. The purpose of         the absolute color values between adjacent discontinuity planes in
+HSV transformation is improving the Mask R-CNN’s performance to          OCM images, the HSV transformation can increase Mask R-CNN’s
+recognize different colors. Because the proposed method essentially      perception to the relative color values and reduce the overfitting to the
+identifies discontinuity planes by the relative color values instead of  absolute color values (Sect. 2.4.3) (color figure online)
+4888                                                                                                  K. Zhang et al.
+
+Fig. 13  Data augmentation of affine and flipping transformation. a Augmentation of OCM images. b Augmentation of ground truth mask images
+
+2.5 Mask R‑CNN training (step 4.2)                              2.5.2 Loss function and evaluation metric (step 4.2.2)
+
+Mask R-CNN (He et al. 2018) is one of the most classical         2.5.2.1  Loss function According to the initial settings of
+CNNs for instance segmentation in computer vision field          Mask R-CNN, the loss function of each bounding box of
+(Agarwal et al. 2019; Gu et al. 2022; Hafiz and Bhat 2020;       discontinuity planes is set as a multi-task loss as (He et al.
+He et al. 2018). It is typically a two-stage CNN that first      2018)
+generates candidate bounding boxes via a region proposal
+net (RPN), and then fine-tunes the bounding box while            L = Lcls + Lbox + Lmask                                  (18)
+generating pixel-level segmentation within the bounding
+box, which is well suited for accurately identifying the         where Lcls denotes the binary cross-entropy loss of the
+geometry of discontinuities. In addition, it is simple and       bounding box containing discontinuity planes, which is
+flexible to be trained and generalized well in applications      defined as
+(Zaidi et al. 2022). Therefore, Mask R-CNN is adopted for
+the discontinuity recognition.                                   Lcls = −[plogq + (1 − p)log(1 − q)]                      (19)
+
+2.5.1 Data assignment (step 4.2.1)                              where p denotes whether the bounding box contains a
+
+As described in Sect. 2.4.1, the augmented dataset in this       discontinuity plane, q denotes the predicted probability that
+paper includes a total of 4,632 point cloud OCM images.
+According to the dataset division in Table 2, OCM images         the bounding box contains a discontinuity plane.
+are divided into a training set of 3260 images, a validation
+set of 1010 images, and a test set of 362 images, which          In Eq. (18), Lbox denotes the regression loss of the
+includes 302,425, 94,806, and 33,382 discontinuity
+planes, respectively. The training set and validation set        bounding box.
+are involved in the training process. The training set is                ∑
+directly used in the gradient backward propagation, while        Lbox = i∈{x,y,w,h}smoothL1(ti − vi)
+the validation set is not directly used in training and is only                                                           (20)
+used to generate validation metrics for hyperparameter
+fine-tuning. The method in this section is programmed            where (tx, ty, tw, th) denotes the predicted values of the
+from scratch in Python.                                          bounding box and (vx, vy, vw, vh) denotes the ground truth of
+                                                                 the bounding box; smoothL1 is defined as
+
+                                                                 smoothL1 =       0.5x2 if |x| < 1                        (21)
+                                                                                |x| − 0.5 otherwise
+
+                                                                    In Eq. (18), Lmask denotes the average binary cross-
+                                                                 entropy loss of each pixel in the bounding box, indicating
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4889
+
+whether a pixel belongs to a discontinuity plane or not.
+Lmask is defined as
+
+Lmask  =  −1      ∑ Npix  pilogqi + (1 − pi)log(1 − qi)  (22)
+            Npix
+                  i=1
+
+where Npix denotes the number of pixels in the bounding
+box, pi denotes the ground truth that whether the ith pixel is
+a discontinuity pixel, and qi denotes the predicted probability
+of the ith pixel belonging to a discontinuity plane. The loss
+functions in this section are programmed using the Pytorch
+module in Python.
+
+2.5.2.2  Evaluation metric Precision is one of the most          Fig. 14  Loss curvatures of training, validation and testing
+effective metrics for measuring model performance in the
+field of object detection and semantic segmentation (Papan-      is set as 0.7. The minimum probability score of bounding
+dreou et al. 2017; He et al. 2018; Zou et al. 2023). Thus,       boxes is set as 0.05.
+precision is used for model performance evaluation in Mask
+R-CNN training (He et al. 2018). Precision is defined as            All datasets are trained for a total of 260 epochs (211,900
+                                                                 iterations). The batch size is set to 4 and learning rate is 1e-5.
+Precision = TP                                           (23)    The cosine scheduler is used for the first 150 epochs to discount
+               TP + FP                                           the learning rate with a decay rate of 0.01. The learning rate is
+                                                                 kept unchanged when the epoch number is larger than 150.
+where TP denotes the bounding box containing a
+discontinuity plane and is predicted as positive, and FP            The training (and the inferring) process is performed
+denotes the bounding box does not contain a discontinuity        using the Pytorch module in Python.
+plane but is predicted as positive.
+                                                                 2.5.4 Training results
+   The intersection over union (IOU), one of the important
+evaluation metrics in the field of image segmentation in         Figure 14 shows the loss curvatures of training, validation,
+computer vision, is used to evaluate the degree of conformity    and testing. It can be seen that all the training loss, vali-
+between the predicted mask and the real mask (Ahmed              dation loss, and testing loss can effectively reduce within
+et al. 2015). The higher the IOU, the higher the accuracy        150 epochs. There is an obvious convergence stage with the
+of the predicted mask. According to the method of He et al.      epochs larger than 150. Finally, the validation loss is a little
+(2018), this paper adopts the standard COCO (Lin et al.          bigger than the training loss, and the testing loss is bigger
+2015) metrics including AP (average precision, averaged          than the validation loss.
+over IOU thresholds of 0.5 ∶ 0.05 ∶ 0.95 ), AP50 (average
+precision over the IOU threshold of 0.5), and AP75 (average         Table 3 shows the AP results of the validation set and
+precision over the IOU threshold of 0.75) to evaluate the        testing set. It can be seen that AP is 0.616, AP50 is 0.851,
+model performance, where AP is evaluated using the mask          and AP75 is 0.725 with the testing set, demonstrating the
+IOU instead of the bounding box IOU.                             effectiveness of Mask R-CNN for discontinuity detection
+                                                                 and segmentation using OCM images. Table 3 also shows
+   The methods in this section are performed using the           that APsmall < APmedium < APlarge , indicating that Mask
+pycocotools-windows module in Python.                            R-CNN is better at recognizing large areas of discontinuities
+                                                                 in OCM images than small areas of discontinuities.
+2.5.3 Training parameter selection (step 4.2.3)
+                                                                    Figure 15a is the case in the validation set. Figure 15c
+During training process, an ROI is considered positive if it     shows Mask R-CNN’s discontinuity recognition results
+has IOU with a ground truth box of at least 0.5 and negative     (mask image) of Fig. 15a. It can be seen that the number
+otherwise. The mask loss Lmask is defined only on positive       and shape of the recognized discontinuities are very close
+ROIs. The mask target is the intersection between an ROI         to the ground truth (Fig. 15b). Although there is an absence
+and its associated ground truth masks. Each OCM image            of some small discontinuity planes (areas in the red circles
+is set to generate 512 bounding boxes by default, with the
+ratio between positive and negative samples as 1:1. The non-
+maximum suppression (NMS) threshold of bounding boxes
+4890                                                                                                                                              K. Zhang et al.
+
+Table 3  Average precision of    Metric                      AP           AP50          AP75              APsmall                      APmedium   APlarge
+validation datasets
+
+                                 Validation                  0.714        0.980         0.894             0.640                        0.738      0.872
+                                 Testing                     0.616        0.851         0.725             0.523                        0.609      0.714
+
+                                 *AP , average precision over IOU thresholds of 0.5 ∶ 0.05 ∶ 0.95 ; AP50 , average precision over the IOU
+                                 threshold of 0.5; AP75, average precision over the IOU threshold of 0.75; APsmall , average precision for
+                                 objects with area < 322 ; APmedium , average precision for objects with 322 < area < 962 ; APlarge , average
+                                 precision for objects with area > 962
+
+Fig. 15  Discontinuity recogni-
+
+tion procedures of the proposed
+method. a OCM image. b
+
+Discontinuity ground truth by
+manual labeling. c Discontinu-
+ity recognition results. d 3D
+
+discontinuity mapping results
+
+of Fig. 15c), most of the large areas of discontinuities have             corresponding at the pixel location of height zi and width xi
+been recognized correctly.
+                                                                          position in Imgmask . Figure 15d shows the mapping results of
+2.6 3D discontinuity mapping and orientation
+     generation (step 5.2)                                                3D discontinuities of Fig. 15a.
+
+                                                                                After obtaining the discontinuity indexes of points in the 3D
+
+                                                                          point cloud, all points contained in each discontinuity plane are
+
+                                                                          calculated by Eq. (1) to obtain the discontinuity normal vector
+
+The discontinuity recognition results of Mask                             vecp , and then  vxepc,pyisp,pzrpojTe ,ctthedenotnhteo  the  upper unit hemisphere.
+                                                                          Given vecp =                                            dip  direction (DD) and dip
+R-CNN are 2D mask images. Thus, it is neces-
+
+sary to map from the 2D discontinuity mask                                angle (DA) corresponding to vecp are calculated as
+
+image to discontinuities in 3D point clouds. Given                                  ⎧                  �              �   ◦
+Pcoord = { x1, x2, … , xN T , y1, y2, … , yN T , z1, z2, … , zN T
+                                                                                    ⎪      arccos         √ yp                          xp > 0
+as the point cloud coordinates after the direction calibra-                         ⎪                      �xp2 +yp2                   otherwise
+                                                                          DDp    =  ⎨                                        �
+tion in Sect. 2.3.1, Img as the OCM image generated in                              ⎪                                                             (24)
+                                                                                    ⎪⎩                                          ◦
+
+Sect.  2.3.2, Imgmask as  the  discontinuity mask       image    recog-                 360◦   −  arccos      √ yp
+nized  by Mask R-CNN      and  Label = l1, l2, … ,      lN T as  the 3D
+                                                                                                                  xp2 +yp2
+
+discontinuity indexes corresponding to Pcoord.
+
+Since OCM images are generated by x and z coordinates                                      ⎛                          ⎞◦
+
+(Sect. 2.3.2), the x and z coordinates in Pcoord are first rounded        DAp    =         ⎜   �        zp            ⎟
+                                                                                    arccos⎜       xp2  + y2p          ⎟
+to serve as the index of the image coordinates. Considering                                                   +  z2p  ⎠⎟                          (25)
+                                                                                           ⎝⎜
+the size of   Img and Imgmask    are the   same, the    3D   discontinu-
+ity index li  of each point xi,  yi, zi T  ∈ Pcoord is  the  pixel value
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4891
+
+Fig. 16  Data collection and
+processing of case 1. a The
+rock slope scanned by Lato
+et al. (2013). ROI is denoted in
+the black rectangle region. b
+OCM image generated by the
+proposed method
+
+   The methods in this section are programmed from scratch
+in Matlab.
+
+3 Case study
+
+3.1 Case 1: a benchmark rock slope from Lato et al.
+     (2013)
+
+This case is a publicly available point cloud of rock slopes       Fig. 17  Discontinuity recognition procedures of case 1 by the pro-
+scanned by Lato et al. (2013) (Fig. 16a). The raw point cloud      posed method. a Discontinuity ground truth by manual labeling. b
+includes 1,515,722 points. After cropping and downsam-             Discontinuity recognition results. c 3D discontinuity mapping results
+pling, the ROI region (Fig. 16a) contains 414,710 points
+with the approximate average spacing of adjacent points of         in training as a validation data, and the manually labeled ground
+2.41 cm. It is adopted in many studies as a benchmark model        truth is shown in Fig. 17a. Figure 17b shows the discontinuity
+for orientation identification validation (Riquelme et al.         recognition result by Mask R-CNN, which is very close to the
+2014; Kong et al. 2020; Wu et al. 2020; Daghigh et al. 2022).      manually labeled ground truth (Fig. 17a). Although some trivial
+Representatively, Daghigh et al. (2022) manually determine         discontinuities (areas within the white ovals in Fig. 17b) are
+the discontinuity orientations using the Segment tool in the       missing, major discontinuity planes are effectively identified.
+CloudCompare software. The orientation results are used            The mapping results of 3D discontinuities in point clouds are
+as the ground truth of this case for comparison. Chen et al.
+(2016) proposed a fully automated method of discontinuity
+recognition and analyzed this case. The raw point cloud was
+first preprocessed into Delaunay triangular meshes. Then
+mesh normal vectors were clustered into five sets using an
+improved K-means algorithm. Finally, discontinuity planes
+were extracted using shared edge connection of triangular
+meshes. Therefore, this case is used to compare the accu-
+racy of the proposed method with the above methods on this
+benchmark case.
+
+   Figure 16b shows the OCM image of this case. It can be
+seen that the color within discontinuities is uniform, which
+effectively avoids the problem of excessive color inconsistence
+(Figs. 6 and 8b, c). In addition, the sharp points located near
+intersection lines of discontinuity planes can serve as an effec-
+tive auxiliary remind for discontinuity segmentation, which is
+convenient for labeling and recognition. This image is involved
+4892                                                                  K. Zhang et al.
+
+Table 4  Orientation comparison of case 1 by different methods        shown in Fig. 17c. It can be observed that each discontinuity
+                                                                      plane is relatively complete and flat in the 3D point cloud model.
+Plane id    Ground truth    Chen et al.       The proposed
+            Daghigh et al.  (2016)            method                     The orientation of each discontinuity plane in Fig. 17c
+            (2022)                                                    is calculated according to Eqs. (24–25). Table 4 shows the
+                            DD/DA ∆           DD/DA ∆                 orientation comparison of the proposed method with other
+                                                                      methods. It can be seen that the proposed method has the
+11          246.1/39.1      244.6/38.4 1.2 245.8/38.9 0.3             smallest average error of 1.9°, and the maximum error of
+12          248.1/49.5                                                5.2° has been effectively reduced compared with the other
+13          249.8/35.7      256.2/52.2 6.8 254.6/51.1 5.2             methods of 8.1°.
+14          251.8/34.7
+15          249.3/35.4      251/36.2 0.9 251.7/36 1.2                    This case indicates the effectiveness and accuracy of the
+16          250.1/35.7                                                proposed method on benchmark rock slope models.
+17          253.4/33.3      251.4/33.9 0.8 252.6/35.6 1
+21          339.5/83.1                                                3.2 Case 2: a rock slope
+22          345.7/73.2      250.8/36.8 1.7 251.1/35.6 1.1
+23          338.2/88.1                                                This case is collected from a rock slope of Yangkou ring
+24          173.7/76.7      250.5/35.9 0.3 250.2/35.7 0.1             road in Mountain Lao, Qingdao, China. An Iphone12
+31          136.7/77                                                  mobile phone was used to take four images with the res-
+32          131/84          253.2/33.5 0.2 252.1/34.6 1.5             olution of 4032 × 3024 at different angles in front of the
+33          147.2/89.1                                                slope (Fig. 18a). The image sequence was processed by the
+41          97.2/62.2       157.6/83.8 2 338/83.4 1.5                 Meshroom software to reconstruct the raw point cloud of
+42          92.5/48.6                                                 341,611 points. After the cropping without downsampling,
+43          97.7/48.8       166.3/78.7 5.5 346.5/74.2 1.3             the ROI region contained 297,823 points with the approxi-
+51          304.4/77.9                                                mate average spacing of adjacent points of 2.17 cm. The
+52          286.7/70.7      157.5/86.9 1.4 159.6/89.7 2.1             virtual compass tool in the CloudCompare software was
+Mean error                                                            used to interactively select and measure the discontinuity
+Max error                   353.1/77.8 1.2 176.5/74.9 3.3             orientation as the ground truth. Figure 18b shows the 20
+                                                                      representative discontinuity planes by manual selection. The
+                            314.7/80 3.6 135.4/81.4 4.6               corresponding orientations are listed in Table 5. This case is
+                                                                      used to compare the accuracy of the proposed method with
+                            136.5/89.9 8.1 130.8/81 3                 the fully automated discontinuity identification method of
+                                                                      Chen et al. (2016).
+                            145.6/89.9 1.8 331.4/89.1 4.2
+                                                                         Figure 19a shows the point cloud OCM image generated
+                            286/59.8 8.1 100.4/60.1 3.5               according to Sects. 2.1–2.3, where it can be seen that each
+                                                                      discontinuity plane is filled with a uniform color. The sharp
+                            272.6/47.6 1 93.2/48.3 0.6                points at the intersection lines of adjacent discontinuity
+                                                                      planes can serve as an effective remind of segmentation.
+                            277.3/49.3 0.6 97.3/49.6 0.9              This case is also used in the validation set. It can be seen
+                                                                      from Fig. 19c that the recognized discontinuity planes are
+                            305/77.6 0.7 302.6/77.9 1.8               very similar to the shapes and locations of the manually
+                                                                      labeled discontinuities (Fig. 19b). Figure 19d shows the rec-
+                            109.3/76.6 6.4 286.5/71.3 0.6             ognized 3D discontinuities after mapping.
+
+                                         2.8                    1.9      Figure 19e shows the identification results of the method
+                                                                      of Chen et al. (2016). An improved K-means method was
+                                         8.1                    5.2   first used to cluster normal vectors into k from 2 to 6 groups.
+                                                                      The Silhouette index was then calculated for each grouping
+*∆ denotes the angle between planes (°)                               result to select the optimal group number as 3 (Fig. 20). In
+                                                                      addition to k = 3, the grouping results corresponding to k = 4
+Fig. 18  Data collection and processing of case 2. a Image sequence.  and k = 5 (Fig. 21a, c) with relatively large Silhouette val-
+b 3D reconstructed point clouds. Blue numbers denote indexes and      ues and the corresponding discontinuity identification results
+locations of manually selected discontinuity planes (color figure     (Fig. 21b, d) were also calculated.
+online)
+                                                                         Table 5 shows the orientation error of different meth-
+                                                                      ods. The proposed method has the highest accuracy with
+                                                                      an average error of only 2.9° and a maximum error of
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                       4893
+
+Table 5  Orientation comparison  Plane id    Ground truth Chen et al. (2016)                                         The proposed
+of case 2 by different methods                                                                                       method
+
+                                                         k = 3                  k = 4                 k = 5  ∆ DD/DA ∆
+                                                                                              ∆ DD/DA
+                                                         DD/DA ∆ DD/DA
+
+                                 1           249.2/40.2  350.4/71.5 15.3 337.4/60.5 1.6 337.8/59.2 1.4 332.6/59.6 5.8
+                                 2           264.2/57
+                                 3           264/41.9    185.7/50.5 10.8 185.1/46.9 13.1 185.5/46.2 13.9 172.1/56.7 3.2
+                                 4           252.6/36.5
+                                 5           248.7/37    350.4/71.5 15.2 337.4/60.5 2.8 344.9/59.6 8.1 341.3/62.2 4.3
+                                 6           254.8/29.9
+                                 7           249.9/35.9  42.1/87 27.9 189.1/88.8 5.4 189.9/89.4 4.9 192.6/86.9 1.6
+                                 8           338.7/82.4
+                                 9           347.5/79    42.1/87 12.8 50.6/84.4 4 50.6/84.5 4 51.5/84.5 3.2
+                                 10          341/89.5
+                                 11          353.5/76.4  171/37.8 1.7 171.1/37.4 1.3 171.1/37.4 1.2 170.7/37 0.8
+                                 12          314.1/77.2
+                                 13          302.4/75.9  0.7/71.7 21 345.2/56.8 0.7 345/55.8 0.3 343.7/55.9 1.2
+                                 14          330.2/83
+                                 15          286.1/58.9  352/80.7 12.8 348.5/76.7 7.6 350.3/76.2 8.3 344.5/77.2 6.9
+                                 16          274.2/51.1
+                                 17          277.2/46.4  352/80.7 18.6 340.8/64.9 0.8 340.9/64.9 0.8 340.3/64.9 0.8
+                                 18          305/77.6
+                                 19          290.2/67    155.1/52.7 2.8 152.1/51.5 4.4 146.4/57.3 7 154.1/54.9 0.7
+                                 20          236.8/45.7
+                                 Mean error              353/83.4 10.5 344.9/76.8 0.2 344.9/76.6 0 345.4/77 0.6
+                                 Max error
+                                                         353/83.4 36.1 345.9/79.5 28.2 346.1/79.5 28.3 323.4/63.6 1.7
+
+                                                         43.2/84.4 1.7 44.7/83.9 0.6 45.4/83.6 1 45.1/83.6 0.7
+
+                                                         168.7/51.9 5.8 167.5/50.6 5.1 168.4/49.3 3.6 171.8/44.6 1.9
+
+                                                         170/69.4 10.4 358/89.9 18.8 183.2/76.3 5.5 177.3/82.5 11.7
+
+                                                         170/69.4 32.5 165.1/66.2 32.6 180.2/55.2 15.8 192.4/45.3 2.2
+
+                                                         352.4/69.2 13.1 352.7/60.5 4.4 352.7/60.6 4.5 352.7/61.7 5.5
+
+                                                         347.6/79.6 19.7 347.7/75.6 15.7 348.7/60.2 0.5 349/62.1 2.2
+
+                                                         235.2/88 19.8 235.3/87.9 19.7 235.3/88 19.8 46.2/72.4 2.4
+
+                                                         196.3/54.3 31.8 219.8/45.4 12.1 220.5/45.3 11.6 237.3/47.2 1.5
+
+                                                                          16.0                8.9            7.0   2.9
+
+                                                                          36.1                32.6           28.3  11.7
+
+                                 *∆ denotes the angle between planes (°)
+
+11.7°. In comparison, the method of Chen et al. (2016) has      3.3 Case 3: a rock tunnel excavation face
+the highest accuracy with an average error of 7° and the
+smallest maximum error of 28.3°. The better performance         This case is an excavation face from a rock tunnel in western
+of the proposed method mainly attributes to the flatness        China. The tunnel is excavated using the drilling and blast-
+of the recognized discontinuity planes and the shapes well      ing method. The blasting and construction disturbance joints
+similar to the manually labeled discontinuities. In con-        increase the difficulty of discontinuity identification. Dur-
+trast, the discontinuity recognition effect of Chen et al.      ing the construction gap after blasting slagging and before
+(2016) is first affected by the selection of group numbers.     the steel arch installation, six images with the resolution of
+Besides, the segmentation of discontinuity planes is inac-      5760 × 3240 (Fig. 22a) were taken at different angles in front
+curate, making the shape of discontinuities more differ-        of the excavation face using an Iphone11promax mobile
+ent from the manual judgements (Fig. 19b). For example,         phone. The Meshroom software was used to reconstruct the
+the largest error of 36° mainly attributes to the No. 12        3D point cloud model (Fig. 22b) from the image sequence.
+(Fig. 19e) plane which is not separated sufficiently from       The raw point cloud contained 1,429,767 points. After the
+the No. 11 plane and contains non-in-plane noise. Simi-         cropping without downsampling, the ROI region contained
+larly, the No.16 (error of 32.5°) plane and the No.20 (error    639,955 points with the approximate average spacing of
+of 31.8°) plane are also failed to be well segmented from       adjacent points of 2.91 cm. The virtual compass tool in the
+other planes and noise. However, when the discontinuity         CloudCompare software was used to interactively select and
+plane is well segmented, such as shown in the No.13 plane       measure 20 representative discontinuities (Fig. 22b) as the
+in Fig. 19e, the corresponding orientation error can be         ground truth.
+very small as 1.7°.
+                                                                   This case is adopted as a testing data which does not
+   This case indicates that the proposed method has bet-        participate in any Mask R-CNN training process. Since the
+ter accuracy and robustness than the method of Chen et al.      training and validation sets of the Mask R-CNN network
+(2016).                                                         only include rock slope data, this case of a rock tunnel
+4894                                                                    K. Zhang et al.
+
+                                                                        Fig. 20  Silhouette values of case 2 for grouping results of Chen et al.
+                                                                        (2016)
+
+Fig. 19  Discontinuity recognition procedures of case 2 by different    manually selected typical discontinuity planes have been effec-
+methods. a OCM image generated by the proposed method. b Dis-           tively identified. Figure 23c shows the mapping results of 3D
+continuity ground truth by manual labeling. c Discontinuity recog-      discontinuity planes in the point cloud.
+nition results of the proposed method. d 3D discontinuity mapping
+results of the proposed method. e Discontinuity recognition results of     Figure 23d shows the discontinuity recognition results
+Chen et al. (2016)                                                      of Chen et al. (2016). The optimal grouping results cor-
+                                                                        respond to the largest Silhouette value of k = 6 (Fig. 24).
+excavation face is also used to validate the adaptability and           It can be seen that there are some flat discontinuity planes
+robustness of the proposed method in different scenarios.               similar to the OCM image in Fig. 23a, such as the No. 9
+                                                                        plane in Fig. 23d. However, many discontinuity planes are
+   Figure 23a–c shows the recognition results of the proposed           not segmented effectively, such as the No.3 plane and the
+method. Specifically, Fig. 23a indicates the proposed method            No.4 plane in Fig. 23d. Some discontinuity planes (e.g.,
+can effectively generate point cloud OCM images because the             No.1, 7, 12, 16, 19 planes in Fig. 23d) are not very flat
+color within each discontinuity plane is uniform. Sharp points          because they contain uneven regions that have non-uniform
+are still located at the intersection lines of discontinuity planes,    colors in Fig. 23a. In addition, discontinuity recognition
+facilitating the recognition and segmentation of discontinuity          results (Fig. 25b, d) corresponding to other grouping results
+planes. Figure 23b shows that the discontinuity planes identi-          (Fig. 25a, c) with large Silhouette values of k = 3 and k = 4
+fied by Mask R-CNN can cover most of the main discontinuity             (Fig. 24) were also computed for comparison.
+planes generated by manual labeling (Fig. 23a). All of the 20
+                                                                           The orientation comparison of different methods is shown in
+                                                                        Table 6. It can be seen that the proposed method has the small-
+                                                                        est average error (3.1°) and the smallest maximum error (7.8°).
+                                                                        Comparatively. The method of Chen et al. (2016) has the small-
+                                                                        est average error of 6.2° at the optimal group number of k = 6,
+                                                                        which are almost twice as much as the proposed method. The
+                                                                        maximum orientation error is as high as 35.8° of the No. 1 plane
+                                                                        in Fig. 23d. This is because the No. 1 plane is very uneven.
+                                                                        Figure 23d shows that the No. 1 plane contains regions with
+                                                                        obviously different colors and multiple sharp lines in Fig. 23a.
+                                                                        The large orientation error of the No.18 (Fig. 25b) plane and
+                                                                        the No.11 (Fig. 25d) plane is also caused by the unevenness of
+                                                                        identified discontinuity planes. In contrast, the proposed method
+                                                                        performs recognition directly based on the color of OCM images
+                                                                        reflecting the flatness, generating flat discontinuity planes that
+                                                                        better match the manual labeling results.
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4895
+
+Fig. 21  Orientation grouping and discontinuity recognition results of case 2 by Chen et al. (2016). a Orientation grouping results of k = 4. b Dis-
+continuity recognition results of k = 4. c Orientation grouping results of k = 5. d Discontinuity recognition results of k = 5
+
+Fig. 22  Data collection and
+processing of case 3. a Image
+sequence. b 3D reconstructed
+point clouds. Blue numbers
+denote indexes and locations of
+manually selected discontinuity
+planes (color figure online)
+
+   This case illustrates that although only rock slope data are  processing different 3D point cloud models. Therefore, the
+used for the Mask R-CNN training, the proposed method can        density of point clouds is critical for the proposed method.
+effectively identify rock tunnel excavation faces, demonstrat-   To analyze the effect of different point cloud densities on
+ing the adaptability and robustness of the proposed method for   the proposed method, the point cloud of case 2 is ran-
+different scenarios.                                             domly resampled using nine downsample ratios. As shown
+                                                                 in Table 7, the original case 2 contains 297,823 points.
+4 Discussion                                                    Then nine ratios of 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, and
+                                                                 0.2 are used to perform the downsampling, generating the
+4.1 Sensitivity analysis toward point cloud density             downsampled models with 297,823; 268,041; 238,258;
+                                                                 208,476; 178,694; 148,912; 119,129; 89,347; and 59,565
+The proposed method can identify and generate 3D dis-            points, respectively. The method of Sect. 2.3.2 is used to
+continuity planes without any manual intervention when           generate point cloud OCM images by color filling with the
+                                                                 void ratio around 0.1.
+4896                                                                      K. Zhang et al.
+
+Fig. 23  Discontinuity recogni-
+tion procedures of case 3 by dif-
+ferent methods. a OCM image
+generated by the proposed
+method. b Discontinuity recog-
+nition results of the proposed
+method. c 3D discontinuity
+mapping results of the proposed
+method. d Discontinuity rec-
+ognition results of Chen et al.
+(2016)
+
+Fig. 24  Silhouette values of case 3 for grouping results of Chen et al.  number of effectively recognized discontinuities decreases
+(2016)                                                                    with the downsample ratio increases. However, it should
+                                                                          be noted that all of the 20 manually selected representa-
+                                                                          tive discontinuity planes (red dot locations in Fig. 27) are
+                                                                          effectively identified from M1 to M3. Even when the down-
+                                                                          sampling changes from M1 to M7, most of the representa-
+                                                                          tive discontinuity planes can still be recognized, indicating
+                                                                          the recognition effect of main discontinuity planes (i.e.,
+                                                                          manually labeled representative discontinuity planes) by the
+                                                                          proposed method is robust to variations of the point cloud
+                                                                          density. However, when the point cloud downsampling rate
+                                                                          reaches 0.3 (M8) or even 0.2 (M9), both of the total number
+                                                                          of recognized discontinuities and the number of recognized
+                                                                          representative discontinuities have been steeply reduced,
+                                                                          indicating the overly sparse point cloud can significantly
+                                                                          affect the proposed method. Therefore, the point number in
+                                                                          3D point cloud models is suggested to be larger than about
+                                                                          25% of the reference image pixels with the resolution of
+                                                                          800 × 800, which is 160,000 points.
+
+   The specific parameters of different point cloud density               4.2 Efficiency of the proposed method
+models (M1–M9) are shown in Table 7. Figures 26 and 27
+show the OCM images and the recognition results of the pro-               The proposed method contains two operation stages
+posed method. It can be seen that the void increases and the              of training and recognition after acquiring the raw 3D
+color in discontinuity planes gradually become discrete as                point cloud. All algorithms are programmed using the
+the density decreases. Meanwhile, as shown in Table 7, the                combination of Matlab (2022a) and Python. All the
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4897
+
+Fig. 25  Orientation grouping and discontinuity recognition results of case 3 by Chen et al. (2016). a Orientation grouping results of k = 3. b Dis-
+continuity recognition results of k = 3. c Orientation grouping results of k = 4. d Discontinuity recognition results of k = 4
+
+programs are performed on a Windows platform of an Intel       4.3 Analysis of characterization and rationality
+CPU I7 13700K, GPU NVIDIA 4090 and RAM 64GB. The                    for the proposed method
+specific running time for the two stages is shown in Table 8.
+The training stage starts with manual labeling, which takes    Different from the traditional methods of discontinuity rec-
+about 2 h per OCM image, thus the manual labeling of the       ognition that directly process point cloud with orientation
+43 original OCM images takes about 86 h in total. Then         data (Riquelme et al. 2014; Chen et al. 2017; Ge et al. 2018;
+Mask R-CNN training has run for 260 epochs (211,900            Kong et al. 2020; Singh et al. 2021), the proposed method
+iterations) with a total of about 20 h. The main operation     uses OCM images to reflect both the orientation as well as
+time in the training stage is about 106 h. In the recognition  the spatial information of the point cloud. Combined with
+stage, it takes 12 s to process a case on average, including   deep learning methods, the proposed method switches the
+6 s for the NPW-OC contraction, 1 s for normal vector          direct recognition of 3D point clouds into the implicit rec-
+optimal RGB transformation, 2 s for point cloud OCM image      ognition of 2D OCM images by Mask R-CNN, aiming to
+generation, and 3 s for Mask R-CNN-based discontinuity         improve the performance in the following three aspects com-
+recognition and orientation calculation. The good efficiency   pared with traditional methods:
+of the proposed method mainly attributes to the conversion
+from the direct recognition of large-scale 3D point clouds to  1. Recognition efficiency.
+Mask R-CNN’s recognition of 2D OCM images with fixed
+sizes, which effectively reduces the iterative calculation of     The recognition efficiency of traditional methods is sen-
+3D point clouds with different densities and improves the      sitive to the number of points because 3D point clouds are
+efficiency stability.                                          required to be directly processed. In contrast, the proposed
+4898                                                                                                                           K. Zhang et al.
+
+Table 6  Orientation comparison  Plane id    Ground truth Chen et al. (2016)                                   The proposed
+of case 3 by different methods                                                                                 method
+
+                                                         k = 3                  k = 4          k = 6   ∆ DD/DA ∆
+                                                                                       ∆ DD/DA
+                                                         DD/DA ∆ DD/DA
+
+                                 1           322.7/54.7  323.9/57.6 3.1 2.9/57.6 33.2 5.8/58           35.8 322.6/53.9 0.8
+                                 2           40.8/70.6
+                                 3           343.5/60.7  28.4/66.3 12.3 34.9/72 5.8 35.1/72.3 5.7 34.7/72.4 6.1
+                                 4           322.2/56.7
+                                 5           180.9/81.6  338.9/83.5 23.2 340.2/67.1 7 343.9/60.8 0.4 341.6/66.5 6.1
+                                 6           39.9/79.2
+                                 7           28.9/71     338.9/83.5 30.9 337.3/68.6 17.8 320.5/59.5 3.1 321.7/59 2.4
+                                 8           188.8/59.1
+                                 9           175.5/85.9  164.1/83.5 16.8 164.4/83.8 16.4 171.9/81.8 8.9 175.4/81.8 5.4
+                                 10          216.6/53.5
+                                 11          22.3/74.8   20.3/74.9 6.8 32.9/75.6 7.7 37.9/77.7 2.4 34.2/77.5 5.8
+                                 12          205.5/69.6
+                                 13          46.7/85.9   22.9/65.4 7.9 24.1/81.5 11.5 24.9/80.4 10.1 29/72.8 1.8
+                                 14          154.8/85.4
+                                 15          32.3/75.8   187/62.3 3.5 187/62.3 3.6 188.7/59.8 0.7 180.9/62.9 7.8
+                                 16          45.9/88.5
+                                 17          316.6/82.9  177.4/85.8 1.9 177.5/85.7 2 176.2/87.7 1.9 178.4/86 2.8
+                                 18          133.5/68.4
+                                 19          35.2/89.5   213.5/55.1 3 212.9/55.7 3.7 216.8/56 2.6 215.2/55.1 1.9
+                                 20          42.2/88.2
+                                 Mean error              20.3/74.9 2 32.9/75.6 10.2 30.9/80 9.9 22.4/80.3 5.5
+                                 Max error
+                                                         192.2/79.1 16 192/79.5 16.3 200.8/77.4 9 205/71.7 2.2
+
+                                                         20.3/74.9 10.2 32.9/75.6 8.1 30.9/80 7.9 45.1/84.7 2
+
+                                                         158.9/81.1 5.9 158.9/81.2 5.9 162/85.9 7.2 154.7/84.9 0.5
+
+                                                         34.6/77.3 2.7 35.4/77.5 3.4 35.4/77.5 3.4 34.8/76.8 2.6
+
+                                                         42.2/87 4 43.2/87.5 2.9 43.9/87.9 2 45.9/87.4 1
+
+                                                         320.4/79.7 4.9 324.2/80.6 7.8 313/80.2 4.5 318.9/82.9 2.3
+
+                                                         167.3/71.1 31.8 315.2/88 23.7 132/66.4 2.4 131.8/67.2 2
+
+                                                         216/87.5 3.1 216/87.6 3 216.1/87.9 2.8 216/88                         2.6
+
+                                                         216.4/85.1 6.5 218.6/87.1 3.7 218.9/87.4 3.3 42.4/87.4 0.8
+
+                                                                          9.8          9.7             6.2                     3.1
+
+                                                                          31.8         33.2            35.8                    7.8
+
+                                 *∆ denotes the angle between planes (°)
+
+Table 7  Information and         Model       Downsample Point number Point number/Non- FL ratiovd ND NRD
+recognition results of
+downsample models of case 2                  ratio                              black pixel number
+
+                                 Ground truth 1                 297,823         0.47                3  0.07                    143 20
+
+                                 M1          1                  297,823         0.47                3  0.07                    119 20
+
+                                 M2          0.9                268,041         0.42                3  0.091 110 20
+
+                                 M3          0.8                238,258         0.37                3  0.103 102 20
+
+                                 M4          0.7                208,476         0.33                3  0.105 96                18
+
+                                 M5          0.6                178,694         0.28                3  0.107 84                17
+
+                                 M6          0.5                148,912         0.23                5  0.085 91                17
+
+                                 M7          0.4                119,129         0.19                5  0.106 65                18
+
+                                 M8          0.3                89,347          0.14                7  0.093 63                14
+
+                                 M9          0.2                59,565          0.09                9  0.092 63                11
+
+                                 * ND : recognized discontinuity number; NRD : recognized representative discontinuity number
+
+method maps the point cloud into an OCM image of fixed          2. Recognition automation.
+sizes (800 × 800, Sect. 2.3.2) for processing, and Mask
+R-CNN is also efficient in recognizing 2D images (He et al.        Traditional methods often require manual fine-tuning of
+2018), which enables a stable and efficient recognition of      parameters for recognizing different rock models (Riquelme
+point clouds with different point numbers.                      et al. 2014; Kong et al. 2020). Comparatively, the proposed
+                                                                method can finish all the tedious and time-consuming labe-
+                                                                ling by manual interactions in the training stage, resulting
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…                      4899
+
+Fig. 26  OCM images of point cloud models with different densities
+
+Fig. 27  Discontinuity recognition results of point cloud models with different densities. Red points denote the locations of 20 representative dis-
+continuity planes by manual selection (color figure online)
+
+Table 8  Running time of the  Operations                                                      Running time
+proposed method                                                                               Training stage (h)
+                              OCM image labeling                                              86h
+                              Mask R-CNN training                                             20h                 Recognition stage (s)
+                              NPW-OC contraction
+                              Optimal RGB transformation of normal vectors                    106 h               6s
+                              Generation of point cloud OCM images                                                1s
+                              Mask R-CNN predicting and orientation generation                                    2s
+                              Total time                                                                          3s
+                                                                                                                  12s
+4900                                                                                       K. Zhang et al.
+
+in the intelligent recognition without manual fine-tuning of      In addition, the proposed method also has some
+parameters for different models during the recognition stage.  limitations. First, considerable manual interaction and
+                                                               advanced knowledge are required in the field during the
+3. Proximity of the recognition results to manual              model training stage. The labeling operation is tedious
+    judgements.                                                and time-consuming. Second, the characteristics of rock
+                                                               discontinuities are diverse, making it difficult to recog-
+   Traditional methods often need to control the rec-          nize complex and random cases only by training a lim-
+ognition effect using uniform parameter settings of the        ited amount of data. Third, too sparse point cloud can
+algorithm (Zhang et al. 2018; Singh et al. 2021), which        make the discontinuity planes in OCM images incom-
+is ineffective to adjust the morphology of individual          plete (Fig. 26), which significantly affects the recognition
+discontinuity planes. In contrast, the proposed method         effect (Fig. 27). Finally, because the neural network is
+can directly edit the morphology of each individual dis-       used for an implicit recognition, it is difficult to explicitly
+continuity plane in the training stage by careful manual       adjust and control the recognition effect by manual set-
+annotation, making the morphology of individual discon-        ting algorithm parameters as traditional methods when
+tinuity planes generated by the recognition stage closer       the recognition effect is unsatisfactory.
+to manual judgements.
+                                                               4.4 Applications of the proposed method
+   Besides, the proposed method shows the generaliza-
+tion to different scenarios, which is mainly because the       The recognized 3D discontinuity planes and orientations
+OCM image only depends on the geometrical properties           can be further used for applications such as rock dis-
+of rock mass and is independent of scenarios and litholo-      continuity description, geological modeling, rock qual-
+gies. As analyzed in Sect. 3.3, the proposed method can        ity evaluation, and rock numerical analysis (Zhu et al.
+be effectively applied to the discontinuity recognition of     2016; Li et al. 2019; Zhang et al. 2020, 2021; Cai et al.
+the rock tunnel excavation face by training with only rock     2022). In this section, three applications are taken for
+slope data, demonstrating the generalization to different      example, including orientation grouping, 3D trace length
+scenarios of rock engineering.                                 distribution analysis, and discrete fracture network (DFN)
+                                                               generation.
+   From the applicability point of view, since OCM
+images are generated from 3D point clouds and normal              In terms of orientation grouping, given
+vectors, the applicability of the proposed method also         PD = {p1, p2, … , pDN} (DN denotes the number of all
+fundamentally depends on the accuracy and density              points belonging to discontinuity planes) the coordi-
+of point clouds. As analyzed in Sect. 3 and shown in           nates of all points belonging to discontinuity planes,
+Figs. 16, 18, and 22, effective recognition results can        and Plane = {pl1, pl2, … , plDM} (DM denotes the number
+be generated when the approximate average spacing of           of discontinuity planes) the index set of discontinuity
+adjacent points is about 2–3 cm. Both the image-based          points, then the normal vectors of points belonging to
+3D reconstruction method (case 2 and case 3) and the           the ith discontinuity plane pli are the same, which can be
+3D laser scanning method (case 1) can generate effective       calculated by Eq. (1). After obtaining the normal vectors
+point cloud for the recognition of the proposed method.        of all points in PD , the improved K-means algorithm of
+However, it should be noted that when the point cloud          Chen et al. (2016) is used to perform orientation grouping
+is too sparse, the morphology of discontinuity planes in       with the group number k set from 2 to 6. The grouping
+OCM images is incomplete (Fig. 26), which affects with         quality is evaluated using the Silhouette index to deter-
+the recognition effects (Fig. 27). In addition, although       mine the optimal group number and the corresponding
+some point cloud acquisition techniques (such as 3D laser      grouping results. The Silhouette value of the ith point in
+scanning) can collect point cloud with very high resolu-       PD is calculated as
+tion (such as the Z + F Imager 5016 laser scanner can
+reach the resolution of 0.6 mm at 10 m), too dense point       S pi  = b pi − a(pi)        (26)
+cloud is also unnecessary for the proposed method. This                 max{a pi , b(pi)}
+is mainly because the size of an OCM image is fixed at
+800 × 800 (Sect. 2.3.2), and too dense point clouds will       where a(pi) is defined as the average distance of pi to all
+cause the same pixel of the OCM to be repeatedly colored       other points in the same group, and b(pi) is defined as the
+by different points, resulting in the redundancy of point      minimum of the average distance between pi and points in
+cloud data. Therefore, different point cloud acquisition       other groups. The final Silhouette value is the mean value
+techniques can be applied to the proposed method as long       of all Silhouette values of points in PD . A large Silhouette
+as the density of the acquired point cloud is suitable.        value indicates a good grouping quality.
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4901
+
+Fig. 28  Applications of the proposed method on case 1–3. a–c Orientation grouping results of case 1–3. d–f 3D trace recognition results of case
+1–3. g–i 3D trace length distribution fitting results of case 1–3. j–l DFN generation results of case 1–3
+
+   Figure 28a–c illustrates the optimal K-means grouping       defined as the line from pi1 to pi2 , and the trace length leni
+results of case 1–3 with the optimal group numbers of k = 3,   of pli is defined as
+k = 4 and k = 3, respectively.
+                                                               leni = ||pi1 − pi2||           (27)
+   As for trace generation and statistical analysis, Laux
+and Henk (2015) and Riquelme et al. (2018) consider the           Figure 28d–f shows the 3D trace results correspond-
+exposed discontinuity surface as a polygon. They hold          ing to Fig. 28a–c, respectively. In addition, the negative
+that the distance between the two farthest points in the       exponential function is often used to fit the distribution of
+discontinuity point set represents the trace length of the     trace length (Zhang and Einstein 1998, 2000). The fitting
+discontinuity. Therefore, given pi1 and pi2 are the farthest   results of trace length distribution are shown in Fig. 28g–i.
+points in discontinuity plane pli , then the 3D trace line is
+                                                                  DFN is an important basis for rock property analysis
+                                                               (Guo et al. 2022). In DFN, discontinuity planes are often
+4902                                                            K. Zhang et al.
+
+represented by circular discs to simulate the persistence       Acknowledgements  This work was supported by the National Natu-
+of fractures in 3D space (Zhang and Einstein 2000). The         ral Science Foundation of China [42272338, 41827807, 41902275];
+3D spatial disc of the discontinuity plane is determined        Shanghai Sailing Program [18YF1424400]; Joint Fund for Basic
+by the center, radius, and normal vector, corresponding         Research of High-speed Railway of National Natural Science Founda-
+to the midpoints of 3D trace lines, the half-length of 3D       tion of China, China Railway Corporation [U1934212]; China State
+trace length, and the normal vector of discontinuity planes,    Railway Group Co., Ltd. [P2019G038]; Department of Transporta-
+respectively. Figure 28j–l shows the DFN models corre-          tion of Zhejiang Province [202213]; China Railway First Survey and
+sponding to case 1–3.                                           Design Institute Group Co., Ltd. [19-21-1, 2022KY53ZD(CYH)-10];
+                                                                China Railway Tunnel Group Co., Ltd. [CZ02-02-08]; PowChina
+5 Conclusion                                                   Hebei Transportation Highway Investment Development Co.,
+                                                                Ltd. [TH-201908]; Sichuan Railway Investment Group Co., Ltd.
+This paper proposes an intelligent recognition of rock          [SRIG2019GG0004]; The Science and Technology major program of
+discontinuity based on OCM of 3D point clouds via deep          Guizhou Province [2018]3011.
+learning, named OCM. The innovative contributions consist:
+(1) A neighborhood PCA-weighted oriented contraction            Author contribution  Keshen Zhang: Conceptualization, Methodol-
+(NPW-OC) method is proposed to extract point cloud              ogy, Programming, Visualization, Writing—Original Draft, Writ-
+skeletons as discontinuity intersection lines, (2) OCM of       ing—Review & Editing; Wei Wu: Project administration, Funding
+normal vectors based on optimal transformation among            acquisition, Writing—Review & Editing, Resources; Yongsheng Liu:
+normal vectors, HSV and RGB, (3) generation of OCM              Funding support, Project support, Resources; Yong Huang: Funding
+images based on point cloud direction calibration and filling,  support, Project support, Resources; Min Zhang: Funding support, Pro-
+(4) OCM image augmentation based on HSV transformation,         ject support, Resources; Hehua Zhu: Project administration, Funding
+affine transformation, and image flipping, (5) deep-learning-   acquisition, Writing—Review & Editing.
+based discontinuity recognition of Mask R-CNN toward
+OCM images, and (6) 3D discontinuity mapping from OCM           Funding  The authors are grateful to the National Natural Science
+recognition results.                                            Foundation of China (NSFC) via projects: 42272338, 41827807
+                                                                and 41902275; Shanghai Sailing Program (SSP) via a project:
+   Forty-two rock slope image sequences and a rock slope        18YF1424400; Joint Fund for Basic Research of High-speed Railway of
+point cloud are collected and labeled for processing,           National Natural Science Foundation of China (NFCHSR-JFBR), China
+generating a total of 4,632 OCM images including 430,613        Railway Corporation (CRC) via a project: U1934212; China State
+discontinuity planes after data augmentation for training       Railway (CSR) Group Co., Ltd via a project: P2019G038; Department
+the Mask R-CNN. Two rock slope cases and a rock tunnel          of Transportation of Zhejiang Province (ZJDOT) via a project: 202213;
+excavation face case are adopted for testing. The average       China Railway First Survey and Design Institute (CRSDI) Group Co.,
+recognition time per 3D point cloud model is approximately      Ltd via a project: 19-21-1, 2022KY53ZD(CYH)-10; China Railway
+12 s, and the total training time is about 106 h. The results   Tunnel (CRT) Group Co., Ltd via a project: CZ02-02-08; PowChina
+show the proposed method can effectively recognize              Hebei Transportation Highway Investment Development (PHTHID)
+discontinuity planes with shapes, locations, and orientations   Co., Ltd via a project: TH-201908; Sichuan Railway Investment (SCRI)
+close to manual recognition results. The proposed method        Group Co., Ltd via a project: SRIG2019GG0004; The Science and
+is more accurate than traditional methods and shows good        Technology Major Program of Guizhou Province (GZSTMP) via a
+adaptability to different rock engineering scenarios. A         project: [2018]3011.
+sensitivity analysis is performed to validate the robustness
+of the proposed method to the variations of point cloud         Declarations 
+densities. In addition, the recognized discontinuity results
+are applied to three rock engineering practices including       Conflict of interest  No financial or non-financial interest conflicts are
+orientation grouping, 3D trace length distribution analysis,    directly or indirectly related to the submission of this manuscript.
+and DFN generation.
+                                                                References
+   Future research can focus on the efficiency improvement
+of manual labeling during the training stage, the generali-     Abellán A, Oppikofer T, Jaboyedoff M, Rosser NJ, Lim M, Lato MJ
+zation improvement by increasing the scale and quality of             (2014) Terrestrial laser scanning of rock slope instabilities. Earth
+training datasets, the robustness improvement for processing          Surf Process Landf 39:80–97. https://​doi.​org/​10.​1002/​esp.​3493
+too sparse point cloud, and the exploration of more powerful
+neural network structures.                                      Agarwal S, Terrail JOD, Jurie F (2019) Recent advances in object
+                                                                      detection in the age of deep convolutional neural networks. https://​
+                                                                      doi.​org/​10.​48550/​arXiv.​1809.​03193
+
+                                                                Ahmed F, Tarlow D, Batra D (2015) Optimizing expected intersection-
+                                                                      over-union with candidate-constrained CRFs. In: 2015 IEEE inter-
+                                                                      national conference on computer vision (ICCV). Presented at the
+                                                                      2015 IEEE international conference on computer vision (ICCV),
+                                                                      pp 1850–1858. https://​doi.​org/​10.​1109/​ICCV.​2015.​215
+
+                                                                Alférez GH, Vázquez EL, Martínez Ardila AM, Clausen BL (2021)
+                                                                      Automatic classification of plutonic rocks with deep learning.
+                                                                      Appl Comput Geosci 10:100061. https://​doi.​org/​10.​1016/j.​acags.​
+                                                                      2021.​100061
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4903
+
+Au OK-C, Tai C-L, Chu H-K, Cohen-Or D, Lee T-Y (2008) Skel-                             E (eds). Presented at the rock mechanics and rock engineering:
+      eton extraction by mesh contraction. ACM Trans Graph 27:1–10.                     from the past to the future, vol 2, pp 1115–1120
+      https://​doi.​org/​10.​1145/​13606​12.​13606​43                             Ge Y, Tang H, Xia D, Wang L, Zhao B, Teaway JW, Chen H, Zhou T
+                                                                                        (2018) Automated measurements of discontinuity geometric prop-
+Barton N (1978) Suggested methods for the quantitative description                      erties from a 3D-point cloud based on a modified region growing
+      of discontinuities in rock masses: International Society for Rock                 algorithm. Eng Geol 242:44–54. https://d​ oi.o​ rg/1​ 0.1​ 016/j.e​ nggeo.​
+      Mechanics. Int J Rock Mech Min Sci Geomech Abstr 15:319–368                       2018.​05.​007
+                                                                                  Gigli G, Lombardi L, Carla T, Beni T, Casagli N (2022) A method
+Cai W, Zhu H, Liang W (2022) Three-dimensional tunnel face extru-                       for full three-dimensional kinematic analysis of steep rock walls
+      sion and reinforcement effects of underground excavations in deep                 based on high-resolution point cloud data. Int J Rock Mech Min
+      rock masses. Int J Rock Mech Min Sci 150:104999                                   Sci 157. https://​doi.​org/​10.​1016/j.​ijrmms.​2022.​105178
+                                                                                  Giordan D, Hayakawa Y, Nex F, Remondino F, Tarolli P (2018)
+Caliński T, Harabasz J (1974) A dendrite method for cluster analysis.                   Review article: the use of remotely piloted aircraft systems
+      Commun Stat 3:1–27. https://​doi.​org/​10.​1080/​03610​92740​88271​               (RPASs) for natural hazards monitoring and management. Nat
+      01                                                                                Hazards Earth Syst Sci 18:1079–1096. https://​doi.​org/​10.​5194/​
+                                                                                        nhess-​18-​1079-​2018
+Cao J, Tagliasacchi A, Olson M, Zhang H, Su Z (2010) Point cloud                  Griwodz C, Gasparini S, Calvet L, Gurdjos P, Castan F, Maujean B,
+      skeletons via Laplacian based contraction. In: 2010 Shape mod-                    Lanthony Y, de Lillo G (2021) alicevision meshroom: an open-
+      eling international conference. Presented at the 2010 shape mod-                  source 3D reconstruction pipeline, In: 12th ACM multimedia
+      eling international (SMI), IEEE, Aix-en-Provence, France, pp                      systems conference (MMSys 2021). ACM: Association for Com-
+      187–197. https://​doi.​org/​10.​1109/​SMI.​2010.​25                               puting Machinery, Istanbul, Turkey, pp 241–247. https://​doi.​org/​
+                                                                                        10.​1145/​34583​05.​34784​43
+Cawood A, Bond C, Howell J, Butler R, Totake Y (2017) LiDAR,                      Gu W, Bai S, Kong L (2022) A review on 2D instance segmentation
+      UAV or compass-clinometer? Accuracy, coverage and the effects                     based on deep neural networks. Image vis Comput 120:104401.
+      on structural models. J Struct Geol 98:67–82. https://​doi.​org/​10.​             https://​doi.​org/​10.​1016/j.​imavis.​2022.​104401
+      1016/j.​jsg.​2017.​04.​004                                                  Guo J, Zheng J, Lü Q, Xiao Z, Liu T (2022) An analysis of trace
+                                                                                        information of different-shaped fracture networks having a same
+Chen J, Huang H, Cohn AG, Zhang D, Zhou M (2021) Machine                                fracture intensity (P32). KSCE J Civ Eng 26:4265–4275. https://​
+      learning-based classification of rock discontinuity trace: SMOTE                  doi.​org/​10.​1007/​s12205-​022-​1165-3
+      oversampling integrated with GBT ensemble learning. Int J Min               Hafiz AM, Bhat GM (2020) A survey on instance segmentation: state
+      Sci Technol S2095268621000896. https://d​ oi.o​ rg/1​ 0.1​ 016/j.i​ jmst.​        of the art. Int J Multimed Inf Retr 9:171–189. https://​doi.​org/​10.​
+      2021.​08.​004                                                                     1007/​s13735-​020-​00195-x
+                                                                                  Hammah R, Curran J (2000) Validity measures for the fuzzy cluster
+Chen J, Zhu H, Li X (2016) Automatic extraction of discontinuity ori-                   analysis of orientations. IEEE Trans Pattern Anal Mach Intell
+      entation from rock mass surface 3D point cloud. Comput Geosci                     22:1467–1472. https://​doi.​org/​10.​1109/​34.​895981
+      95:18–31. https://​doi.​org/​10.​1016/j.​cageo.​2016.​06.​015               He K, Gkioxari G, Dollár P, Girshick R (2018) Mask R-CNN
+                                                                                  Herrera G, Tomas R, Vicente F, Lopez-Sanchez J, Mallorqui J, Mulas
+Chen N, Kemeny J, Jiang Q, Pan Z (2017) Automatic extraction of                         J (2010) Mapping ground movements in open pit mining areas
+      blocks from 3D point clouds of fractured rock. Comput Geosci                      using differential SAR interferometry. Int J Rock Mech Min Sci
+      109:149–161. https://​doi.​org/​10.​1016/j.​cageo.​2017.​08.​013                  47:1114–1125. https://​doi.​org/​10.​1016/j.​ijrmms.​2010.​07.​006
+                                                                                  Jaboyedoff M, Metzger R, Oppikofer T, Couture R, Derron M, Locat
+Chen R, Lin C, Chen Y, He T, Fei L (2015) Detecting and character-                      J, Turmel D (2007) New insight techniques to analyze rock-slope
+      izing active thrust fault and deep-seated landslides in dense forest              relief using DEM and 3D-imaging cloud points: COLTOP-3D
+      areas of Southern Taiwan using airborne LiDAR DEM. REMOTE                         software. In: Eberhardt E, Stead D, Morrison T (eds) Rock
+      Sens 7:15443–15466. https://​doi.​org/​10.​3390/​rs711​15443                      mechanics: meeting society’s challenges and demands. Taylor &
+                                                                                        Francis, pp 61–68. https://​doi.​org/​10.​1201/​NOE04​15444​019-​c8
+Chen W, Su L, Chen X, Huang Z (2023) Rock image classification                    Jaboyedoff M, Oppikofer T, Abellan A, Derron M, Loye A, Metzger
+      using deep residual neural network with transfer learning. Front                  R, Pedrazzini A (2012) Use of LIDAR in landslide investiga-
+      Earth Sci 10                                                                      tions: a review. Nat Hazards 61:5–28. https://​doi.​org/​10.​1007/​
+                                                                                        s11069-​010-​9634-2
+Daghigh H, Tannant DD, Daghigh V, Lichti DD, Lindenbergh R (2022)                 Jimenez-Rodriguez R, Sitar N (2006) A spectral method for clustering
+      A critical review of discontinuity plane extraction from 3D point                 of rock discontinuity sets. Int J Rock Mech Min Sci 43:1052–
+      cloud data of rock mass surfaces. Comput Geosci 169:105241.                       1061. https://​doi.​org/​10.​1016/j.​ijrmms.​2006.​02.​003
+      https://​doi.​org/​10.​1016/j.​cageo.​2022.​105241                          Jones L, Hobbs P (2021) The application of terrestrial LiDAR for geo-
+                                                                                        hazard mapping, monitoring and modelling in the british geologi-
+de Oliveira L, Lassiter H, Wilkinson B, Whitley T, Ifju P, Logan S,                     cal survey. Remote Sens. 13. https://​doi.​org/​10.​3390/​rs130​30395
+      Peter G, Vogel J, Martin T (2021) Moving to automated tree                  Khaloo A, Lattanzi D (2017) Robust normal estimation and region
+      inventory: comparison of UAS-derived lidar and photogrammetric                    growing segmentation of infrastructure 3D point cloud models.
+      data with manual ground estimates. REMOTE Sens. 13. https://​                     Adv Eng Inform 34:1–16. https://​doi.​org/​10.​1016/j.​aei.​2017.​07.​
+      doi.​org/​10.​3390/​rs130​10072                                                   002
+                                                                                  Kong D (2021) Development and application of UAV-SfM photogram-
+Deibe D, Amor M, Doallo R (2020) Big data geospatial processing for                     metry for quantitative characterization of rock mass discontinui-
+      massive aerial LiDAR datasets. REMOTE Sens 12. https://​doi.​                     ties. Int J Rock Mech Min Sci 19
+      org/​10.​3390/​rs120​40719                                                  Kong D, Wu F, Saroglou C (2020) Automatic identification and char-
+                                                                                        acterization of discontinuities in rock masses from 3D point
+Esmaeilzadeh A, Shahriar K (2019) Optimized fuzzy cmeans—fuzzy
+      covariance—fuzzy maximum likelihood estimation clustering
+      method based on deferential evolutionary optimization algorithm
+      for identification of rock mass discontinuities sets. Period Polytech
+      Civ Eng 63:674–686. https://​doi.​org/​10.​3311/​PPci.​13885
+
+Fekete G, Treinish LA (1990) Sphere quadtrees: a new data structure
+      to support the visualization of spherically distributed data. In:
+      Extracting meaning from complex data: processing, display, inter-
+      action. Presented at the extracting meaning from complex data:
+      processing, display, interaction, SPIE, pp 242–253. https://​doi.​
+      org/​10.​1117/​12.​19991
+
+Ferrero A, Umili G, Vagnon F (2016) Analysis of discontinuity data
+      obtained with remote sensing tools to generate input for EC7
+      design. In: Ulusay R, Aydan O, Gercek H, Hindistan M, Tuncay
+4904                                                                        K. Zhang et al.
+
+      clouds. Eng Geol 265:105442. https://​doi.​org/​10.​1016/j.​enggeo.​  Rodriguez A, Laio A (2014) Clustering by fast search and find of den-
+      2019.​105442                                                                sity peaks. Science 344:1492–1496. https://d​ oi.o​ rg/​10.​1126/​scien​
+Lato M, Kemeny J, Harrap R, Bevan G (2013) Rock bench: Establish-                 ce.​12420​72
+      ing a common repository and standards for assessing rockmass
+      characteristics using LiDAR and photogrammetry. Comput Geosci         Rousseeuw PJ (1987) Silhouettes: A graphical aid to the interpretation
+      50:106–114. https://​doi.​org/​10.​1016/j.​cageo.​2012.​06.​014             and validation of cluster analysis. J Comput Appl Math 20:53–65.
+Laux D, Henk A (2015) Terrestrial laser scanning and fracture network             https://​doi.​org/​10.​1016/​0377-​0427(87)​90125-7
+      characterisation—perspectives for a (semi-) automatic analysis
+      of point cloud data from outcrops. Z Dtsch Ges Geowiss 166:99–        Ruiz Pereira S, Marquardt C, Beriain E, Lambert F (2021) Permafrost
+      118. https://​doi.​org/​10.​1127/​1860-​1804/​2015/​0089                    evolution in a mountain catchment near Santiago de Chile. J South
+Lee Y-S, Koo H-S, Jeong C-S (2006) A straight line detection using                Am Earth Sci 109:103293. https://d​ oi.o​ rg/1​ 0.1​ 016/j.j​ sames.2​ 021.​
+      principal component analysis. Pattern Recognit Lett 27:1744–                103293
+      1754. https://​doi.​org/​10.​1016/j.​patrec.​2006.​04.​016
+Li X, Chen J, Zhu H (2016) A new method for automated discontinuity         Singh SK, Banerjee BP, Lato MJ, Sammut C, Raval S (2022a) Auto-
+      trace mapping on rock mass 3D surface model. Comput Geosci                  mated rock mass discontinuity set characterisation using ampli-
+      89:118–131. https://​doi.​org/​10.​1016/j.​cageo.​2015.​12.​010             tude and phase decomposition of point cloud data. Int J Rock
+Li X, Chen Z, Chen J, Zhu H (2019) Automatic characterization of rock             Mech Min Sci 152. https://d​ oi.o​ rg/1​ 0.1​ 016/j.i​ jrmms.2​ 022.1​ 05072
+      mass discontinuities using 3D point clouds. Eng Geol 259. https://​
+      doi.​org/​10.​1016/j.​enggeo.​2019.​05.​008                           Singh SK, Banerjee BP, Lato MJ, Sammut C, Raval S (2022b) Auto-
+Lin T-Y, Maire M, Belongie S, Bourdev L, Girshick R, Hays J, Perona               mated rock mass discontinuity set characterisation using ampli-
+      P, Ramanan D, Zitnick CL, Dollár P (2015) Microsoft COCO:                   tude and phase decomposition of point cloud data. Int J Rock
+      common objects in context                                                   Mech Min Sci 152:105072. https://d​ oi.o​ rg/1​ 0.1​ 016/j.i​ jrmms.2​ 022.​
+Liu L, Xiao J, Wang Y (2019) Major orientation estimation-based rock              105072
+      surface extraction for 3D rock-mass point clouds. Remote Sens.
+      11. https://​doi.​org/​10.​3390/​rs110​60635                          Singh SK, Raval S, Banerjee BP (2021) Automated structural disconti-
+Liu Y, Chen J, Tan C, Zhan J, Song S, Xu W, Yan J, Zhang Y, Zhao M,               nuity mapping in a rock face occluded by vegetation using mobile
+      Wang Q (2022) Intelligent scanning for optimal rock discontinuity           laser scanning. Eng Geol 285:106040. https://​doi.​org/​10.​1016/j.​
+      sets considering multiple parameters based on manifold learning             enggeo.​2021.​106040
+      combined with UAV photogrammetry. Eng Geol 309. https://​doi.​
+      org/​10.​1016/j.​enggeo.​2022.​106851                                 Smith AR (1978) Color gamut transform pairs. ACM SIGGRAPH
+Papandreou G, Zhu T, Kanazawa N, Toshev A, Tompson J, Bregler C,                  Comput Graph 12:12–19. https://d​ oi.o​ rg/1​ 0.1​ 145/9​ 65139.8​ 07361
+      Murphy K (2017) Towards accurate multi-person pose estimation
+      in the wild. In: 2017 IEEE Conference on Computer Vision and          Smith JV, Holden L (2021) Rock slope kinematic instability con-
+      Pattern Recognition (CVPR). Presented at the 2017 IEEE Con-                 trolled by large-scale variation of basalt column orientation.
+      ference on Computer Vision and Pattern Recognition (CVPR),                  Bull Eng Geol Environ 80:239–250. https://​doi.​org/​10.​1007/​
+      IEEE, Honolulu, HI, pp 3711–3719. https://​doi.​org/​10.​1109/​             s10064-​020-​01917-5
+      CVPR.​2017.​395
+Priest SD (1993) Discontinuity analysis for rock engineering. Springer      Sturzenegger M, Stead D (2009) Quantifying discontinuity orientation
+Priest SD (1985) Hemispherical projection methods in rock mechanics.              and persistence on high mountain rock slopes and large landslides
+      HarperCollins Publishers Ltd, Boston                                        using terrestrial remote sensing techniques. Nat Hazards Earth
+Qiao L, Deng N-F, Li Q-W, Zhang Q-L, Hao J-W (2022) Multi-Crack-                  Syst Sci 9:267–287. https://​doi.​org/​10.​5194/​nhess-9-​267-​2009
+      Net: a fast segmentation and quantification combined method
+      for rock discontinuity traces by capturing an image. Geofluids        Vo A, Linh T, Laefer D, Bertolotto M (2015) Octree-based region
+      2022:1832662. https://​doi.​org/​10.​1155/​2022/​18326​62                   growing for point cloud segmentation. ISPRS J Photogramm
+Raguram R, Chum O, Pollefeys M, Matas J, Frahm J (2013) USAC: a                   Remote Sens 104:88–100. https://​doi.​org/​10.​1016/j.​isprs​jprs.​
+      universal framework for random sample consensus. IEEE Trans                 2015.​01.​011
+      PATTERN Anal Mach Intell 35:2022–2038. https://​doi.​org/​10.​
+      1109/​TPAMI.​2012.​257                                                Wada K (2023) Labelme: image polygonal annotation with python.
+Ran X, Xue L, Zhang Y, Liu Z, Sang X, He J (2019) Rock classification             https://​doi.​org/​10.​5281/​zenodo.​57112​26
+      from field image patches analyzed using a deep convolutional neu-
+      ral network. Mathematics 7:755. https://​doi.​org/​10.​3390/​math7​   Wang X, Zou L, Shen X, Ren Y, Qin Y (2017) A region-growing
+      080755                                                                      approach for automatic outcrop fracture extraction from a three-
+Rathje E, Franke K (2016) Remote sensing for geotechnical earthquake              dimensional point cloud. Comput Geosci 99:100–106. https://d​ oi.​
+      reconnaissance. SOIL Dyn Earthq Eng 91:304–316. https://​doi.​              org/​10.​1016/j.​cageo.​2016.​11.​002
+      org/​10.​1016/j.​soild​yn.​2016.​09.​016
+Riquelme A, Tomas R, Cano M, Pastor J, Abellan A (2018) Automatic           Wang Y, Feng H, Delorme F, Engin S (2013) An adaptive normal
+      mapping of discontinuity persistence on rock masses using 3D                estimation method for scanned point clouds with sharp features.
+      point clouds. Rock Mech Rock Eng 51:3005–3028. https://​doi.​               Comput-AIDED Des 45:1333–1348. https://​doi.​org/​10.​1016/j.​
+      org/​10.​1007/​s00603-​018-​1519-9                                          cad.​2013.​06.​003
+Riquelme AJ, Abellán A, Tomás R, Jaboyedoff M (2014) A new
+      approach for semi-automatic rock mass joints recognition from         Wu W, Zhang K, Zhu H (2020) A fast automatic extraction method for
+      3D point clouds. Comput Geosci 68:38–52. https://​doi.​org/​10.​            rock mass discontinuity orientation using fast k-means++ and fast
+      1016/j.​cageo.​2014.​03.​014                                                silhouette based on 3D point cloud. IOP Conf Ser Earth Environ
+                                                                                  Sci 570:052075. https://d​ oi.o​ rg/1​ 0.1​ 088/1​ 755-1​ 315/5​ 70/5/0​ 52075
+
+                                                                            Xie XL, Beni G (1991) A validity measure for fuzzy clustering. IEEE
+                                                                                  Trans Pattern Anal Mach Intell 13:841–847. https://​doi.​org/​10.​
+                                                                                  1109/​34.​85677
+
+                                                                            Yan J, Chen J, Zhan J, Song S, Zhang Y, Zhao M, Liu Y, Xu W (2022)
+                                                                                  Automatic identification of rock discontinuity sets using modified
+                                                                                  agglomerative nesting algorithm. Bull Eng Geol Environ. https://​
+                                                                                  doi.​org/​10.​1007/​s10064-​022-​02724-w
+
+                                                                            Yan W, Shaker A, El-Ashmawy N (2015) Urban land cover classifica-
+                                                                                  tion using airborne LiDAR data: a review. Remote Sens Environ
+                                                                                  158:295–310. https://​doi.​org/​10.​1016/j.​rse.​2014.​11.​001
+
+                                                                            Zaidi SSA, Ansari MS, Aslam A, Kanwal N, Asghar M, Lee B (2022)
+                                                                                  A survey of modern deep learning based object detection models.
+                                                                                  Digit Signal Process 126:103514. https://​doi.​org/​10.​1016/j.​dsp.​
+                                                                                  2022.​103514
+OCM: an intelligent recognition method of rock discontinuity based on optimal color mapping…  4905
+
+Zhang K, Wu W, Zhu H, Zhang L, Li X, Zhang H (2020) A modified                      measurement while drilling data. Int J Geomech 23:04023028.
+      method of discontinuity trace mapping using three-dimensional                 https://​doi.​org/​10.​1061/​IJGNAI.​GMENG-​8080
+      point clouds of rock mass surfaces. J Rock Mech Geotech Eng             Zhu H, Wu W, Chen J, Ma G, Liu X, Zhuang X (2016) Integration
+      12:571–586. https://​doi.​org/​10.​1016/j.​jrmge.​2019.​10.​006               of three dimensional discontinuous deformation analysis (DDA)
+                                                                                    with binocular photogrammetry for stability analysis of tunnels in
+Zhang L, Einstein H (1998) Estimating the mean trace length of rock                 blocky rockmass. Tunn Undergr Space Technol 51:30–40. https://​
+      discontinuities. Rock Mech Rock Eng 31:217–235. https://d​ oi.o​ rg/​         doi.​org/​10.​1016/j.​tust.​2015.​10.​012
+      10.​1007/​s0060​30050​022                                               Zou Z, Chen K, Shi Z, Guo Y, Ye J (2023) Object detection in 20
+                                                                                    years: a survey
+Zhang L, Einstein HH (2000) Estimating the intensity of rock discon-
+      tinuities. Int J Rock Mech Min Sci 37:819–837. https://​doi.​org/​      Publisher's Note Springer Nature remains neutral with regard to
+      10.​1016/​S1365-​1609(00)​00022-8                                       jurisdictional claims in published maps and institutional affiliations.
+
+Zhang P, Du K, Tannant DD, Zhu H, Zheng W (2018) Automated                    Springer Nature or its licensor (e.g. a society or other partner) holds
+      method for extracting and analysing the rock discontinuities from       exclusive rights to this article under a publishing agreement with the
+      point clouds based on digital surface model of rock mass. Eng           author(s) or other rightsholder(s); author self-archiving of the accepted
+      Geol 239:109–118. https://​doi.​org/​10.​1016/j.​enggeo.​2018.​03.​020  manuscript version of this article is solely governed by the terms of
+                                                                              such publishing agreement and applicable law.
+Zhang Q, Wang X, He L, Tian L (2021) Estimation of fracture orien-
+      tation distributions from a sampling window based on geomet-
+      ric probabilistic method. Rock Mech Rock Eng 54:3051–3075.
+      https://​doi.​org/​10.​1007/​s00603-​021-​02431-0
+
+Zhao R, Shi S, Li S, Guo W, Zhang T, Li X, Lu J (2023) Deep
+      learning for intelligent prediction of rock strength by adopting
+

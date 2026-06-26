@@ -1,0 +1,123 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbenchlato_nosk\\ocm_image_145_nosk.png",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J022",
+  "interaction_mode": "lasso",
+  "foreground_points": [],
+  "background_points": [],
+  "box_prompt": null,
+  "lasso_points": [
+    [
+      547,
+      543
+    ],
+    [
+      550,
+      538
+    ],
+    [
+      554,
+      535
+    ],
+    [
+      558,
+      532
+    ],
+    [
+      562,
+      529
+    ],
+    [
+      565,
+      525
+    ],
+    [
+      570,
+      524
+    ],
+    [
+      575,
+      524
+    ],
+    [
+      580,
+      524
+    ],
+    [
+      584,
+      529
+    ],
+    [
+      584,
+      534
+    ],
+    [
+      586,
+      539
+    ],
+    [
+      586,
+      544
+    ],
+    [
+      587,
+      549
+    ],
+    [
+      584,
+      553
+    ],
+    [
+      580,
+      556
+    ],
+    [
+      575,
+      558
+    ],
+    [
+      572,
+      562
+    ],
+    [
+      568,
+      566
+    ],
+    [
+      563,
+      567
+    ],
+    [
+      558,
+      564
+    ],
+    [
+      554,
+      561
+    ],
+    [
+      549,
+      560
+    ],
+    [
+      544,
+      558
+    ],
+    [
+      540,
+      554
+    ],
+    [
+      539,
+      548
+    ],
+    [
+      542,
+      544
+    ]
+  ],
+  "sam_score": 0.9639765024185181,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J022_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J022_overlay.png"
+}

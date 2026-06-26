@@ -1,4 +1,10 @@
 import argparse
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from ocm_rock.config import OCMConfig
 from ocm_rock.pipeline import generate_multi_view_ocm_from_pointcloud
@@ -25,9 +31,6 @@ def main():
     parser.add_argument("--color_mapping", choices=["physical", "adaptive_pca"], default=None)
     parser.add_argument("--adaptive_color_percentile", type=float, default=None)
     parser.add_argument("--adaptive_color_gain", type=float, default=None)
-    parser.add_argument("--color_mapping", choices=["physical", "adaptive_pca"], default=None)
-    parser.add_argument("--adaptive_color_percentile", type=float, default=None)
-    parser.add_argument("--adaptive_color_gain", type=float, default=None)
     parser.add_argument(
         "--draw_skeleton",
         action=argparse.BooleanOptionalAction,
@@ -40,12 +43,6 @@ def main():
     args = parser.parse_args()
 
     cfg = OCMConfig(knn=args.knn)
-    if args.color_mapping is not None:
-        cfg.color_mapping = args.color_mapping
-    if args.adaptive_color_percentile is not None:
-        cfg.adaptive_color_percentile = args.adaptive_color_percentile
-    if args.adaptive_color_gain is not None:
-        cfg.adaptive_color_gain = args.adaptive_color_gain
     if args.color_mapping is not None:
         cfg.color_mapping = args.color_mapping
     if args.adaptive_color_percentile is not None:

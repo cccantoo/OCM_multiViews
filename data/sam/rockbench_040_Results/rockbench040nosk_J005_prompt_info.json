@@ -1,0 +1,52 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbench040nosk.jpg",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J005",
+  "interaction_mode": "point",
+  "foreground_points": [
+    [
+      380,
+      190
+    ],
+    [
+      326,
+      153
+    ],
+    [
+      221,
+      89
+    ],
+    [
+      159,
+      64
+    ],
+    [
+      466,
+      258
+    ]
+  ],
+  "background_points": [
+    [
+      345,
+      200
+    ],
+    [
+      303,
+      171
+    ],
+    [
+      336,
+      118
+    ],
+    [
+      565,
+      239
+    ]
+  ],
+  "box_prompt": null,
+  "lasso_points": [],
+  "sam_score": 0.9130417108535767,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbench_040_Results\\rockbench040nosk_J005_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbench_040_Results\\rockbench040nosk_J005_overlay.png"
+}

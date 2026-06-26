@@ -1,0 +1,147 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbenchlato_nosk\\ocm_image_145_nosk.png",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J024",
+  "interaction_mode": "lasso",
+  "foreground_points": [],
+  "background_points": [],
+  "box_prompt": null,
+  "lasso_points": [
+    [
+      564,
+      567
+    ],
+    [
+      566,
+      562
+    ],
+    [
+      570,
+      559
+    ],
+    [
+      574,
+      556
+    ],
+    [
+      579,
+      554
+    ],
+    [
+      584,
+      552
+    ],
+    [
+      589,
+      552
+    ],
+    [
+      594,
+      552
+    ],
+    [
+      599,
+      550
+    ],
+    [
+      604,
+      548
+    ],
+    [
+      609,
+      548
+    ],
+    [
+      614,
+      550
+    ],
+    [
+      619,
+      551
+    ],
+    [
+      624,
+      551
+    ],
+    [
+      627,
+      555
+    ],
+    [
+      628,
+      560
+    ],
+    [
+      628,
+      565
+    ],
+    [
+      625,
+      569
+    ],
+    [
+      622,
+      573
+    ],
+    [
+      618,
+      576
+    ],
+    [
+      615,
+      580
+    ],
+    [
+      610,
+      580
+    ],
+    [
+      607,
+      576
+    ],
+    [
+      605,
+      571
+    ],
+    [
+      602,
+      567
+    ],
+    [
+      597,
+      567
+    ],
+    [
+      592,
+      567
+    ],
+    [
+      587,
+      569
+    ],
+    [
+      582,
+      571
+    ],
+    [
+      577,
+      574
+    ],
+    [
+      572,
+      576
+    ],
+    [
+      568,
+      572
+    ],
+    [
+      567,
+      567
+    ]
+  ],
+  "sam_score": 0.9135006666183472,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J024_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_145_nosk\\ocm_image_145_nosk_J024_overlay.png"
+}

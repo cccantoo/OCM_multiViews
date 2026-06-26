@@ -1,0 +1,111 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbenchlato_nosk\\ocm_image_140_nosk.png",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J009",
+  "interaction_mode": "lasso",
+  "foreground_points": [],
+  "background_points": [],
+  "box_prompt": null,
+  "lasso_points": [
+    [
+      408,
+      301
+    ],
+    [
+      404,
+      298
+    ],
+    [
+      400,
+      295
+    ],
+    [
+      396,
+      292
+    ],
+    [
+      391,
+      291
+    ],
+    [
+      386,
+      291
+    ],
+    [
+      383,
+      295
+    ],
+    [
+      383,
+      300
+    ],
+    [
+      384,
+      305
+    ],
+    [
+      386,
+      310
+    ],
+    [
+      388,
+      315
+    ],
+    [
+      390,
+      320
+    ],
+    [
+      393,
+      324
+    ],
+    [
+      398,
+      325
+    ],
+    [
+      403,
+      326
+    ],
+    [
+      408,
+      326
+    ],
+    [
+      412,
+      323
+    ],
+    [
+      415,
+      318
+    ],
+    [
+      417,
+      313
+    ],
+    [
+      418,
+      308
+    ],
+    [
+      418,
+      303
+    ],
+    [
+      418,
+      298
+    ],
+    [
+      414,
+      295
+    ],
+    [
+      409,
+      294
+    ]
+  ],
+  "sam_score": 0.8542941808700562,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_140_nosk\\ocm_image_140_nosk_J009_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_140_nosk\\ocm_image_140_nosk_J009_overlay.png"
+}

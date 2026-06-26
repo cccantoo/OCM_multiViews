@@ -22,10 +22,10 @@ class OCMConfig:
     target_void_ratio: float = 0.10
     max_fill_length: int = 15
     # 将 NPW-OC 收缩后的 sharp skeleton 作为连续黑色交线叠加到 OCM 图像上。
-    draw_skeleton: bool = False
+    draw_skeleton: bool = True
     skeleton_line_width: int = 1
     skeleton_link_neighbors: int = 3
-    skeleton_max_link_px: float = 13.0
+    skeleton_max_link_px: float = 8.0
     # 统计滤波，可根据点云噪声调节；论文核心流程未强调去噪，这里作为工程输入前处理。
     statistical_nb_neighbors: int = 20
     statistical_std_ratio: float = 2.0

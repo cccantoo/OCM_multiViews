@@ -4,7 +4,7 @@ from scipy.spatial import cKDTree
 
 
 def statistical_outlier_filter(points: np.ndarray, nb_neighbors: int = 20, std_ratio: float = 2.0) -> np.ndarray:
-    """统计离群点滤波。论文核心不是滤波，但真实岩体扫描常含漂浮点，工程复现建议开启。"""
+    """统计离群点滤波。核心不是滤波，但真实岩体扫描常含漂浮点，工程复现需要打开。"""
     if len(points) <= nb_neighbors:
         return np.ones(len(points), dtype=bool)
     tree = cKDTree(points)
@@ -16,7 +16,7 @@ def statistical_outlier_filter(points: np.ndarray, nb_neighbors: int = 20, std_r
 
 # // 调整knn参数
 def pca_normals(points: np.ndarray, knn: int = 20) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """按论文 Eq.(1) 通过邻域 PCA 估计法向量。
+    """通过邻域 PCA 估计法向量。
 
     返回：
     - normals: 第三特征向量 e3，即局部面法向量；
@@ -51,7 +51,7 @@ def pca_normals(points: np.ndarray, knn: int = 20) -> Tuple[np.ndarray, np.ndarr
 
 
 def hemispherize(normals: np.ndarray) -> np.ndarray:
-    """论文半球化：z<0 的法向量反向，使其落到上半球。"""
+    """半球化：z<0 的法向量反向，使其落到上半球。"""
     normals = normals.copy()
     norms = np.linalg.norm(normals, axis=1, keepdims=True) + 1e-12
     normals = normals / norms

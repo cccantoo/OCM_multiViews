@@ -8,13 +8,13 @@ from .preprocess import global_plane_normal, hemispherize
 
 
 def normal_to_orientation(normal: np.ndarray) -> Tuple[float, float]:
-    """论文 Eq.(24)-(25)：由结构面法向量计算倾向 DD 与倾角 DA。"""
+    """Eq.(24)-(25)：由结构面法向量计算倾向 DD 与倾角 DA。"""
     n = normal / (np.linalg.norm(normal) + 1e-12)
     if n[2] < 0:
         n = -n
     xp, yp, zp = n
     denom = np.sqrt(xp * xp + yp * yp) + 1e-12
-    # 与论文公式一致：以 y 方向为参考，xp 判断象限。
+    # 与以 y 方向为参考，xp 判断象限。
     dd = np.degrees(np.arccos(np.clip(yp / denom, -1.0, 1.0))) if xp > 0 else 360.0 - np.degrees(np.arccos(np.clip(yp / denom, -1.0, 1.0)))
     da = np.degrees(np.arccos(np.clip(zp / (np.linalg.norm(n) + 1e-12), -1.0, 1.0)))
     return float(dd % 360.0), float(da)
@@ -32,7 +32,7 @@ def analyze_planes(points: np.ndarray, labels: np.ndarray, min_points: int = 50)
         pts = points[ids]
         normal = global_plane_normal(pts)
         dd, da = normal_to_orientation(normal)
-        # 三维迹长：论文应用部分采用结构面点集中最远两点距离。
+        # 三维迹长：应用部分采用结构面点集中最远两点距离。
         trace_len = approximate_trace_length(pts)
         results.append({
             "plane_id": int(lab),
@@ -60,7 +60,7 @@ def approximate_trace_length(pts: np.ndarray, sample: int = 3000) -> float:
 
 
 def best_orientation_grouping(normals: np.ndarray, k_min: int = 2, k_max: int = 6) -> Tuple[np.ndarray, int, float]:
-    """论文应用部分：KMeans k=2..6，用 Silhouette 选最优组数。"""
+    """KMeans k=2..6，用 Silhouette 选最优组数。"""
     normals = hemispherize(normals)
     best_score = -1.0
     best_labels = None

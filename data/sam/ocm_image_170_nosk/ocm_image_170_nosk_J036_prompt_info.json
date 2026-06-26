@@ -1,0 +1,35 @@
+{
+  "image_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\images\\rockbenchlato_nosk\\ocm_image_170_nosk.png",
+  "checkpoint_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\checkpoints\\sam_vit_h_4b8939.pth",
+  "model_type": "vit_h",
+  "discontinuity_id": "J036",
+  "interaction_mode": "point",
+  "foreground_points": [
+    [
+      685,
+      376
+    ],
+    [
+      695,
+      288
+    ],
+    [
+      662,
+      275
+    ],
+    [
+      661,
+      240
+    ],
+    [
+      632,
+      332
+    ]
+  ],
+  "background_points": [],
+  "box_prompt": null,
+  "lasso_points": [],
+  "sam_score": 0.94202721118927,
+  "mask_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_170_nosk\\ocm_image_170_nosk_J036_mask.png",
+  "overlay_path": "C:\\jgmsb\\segment-anything-main\\sam_rock_demo_jgm\\rockbenchlato_nosk_Results\\ocm_image_170_nosk\\ocm_image_170_nosk_J036_overlay.png"
+}

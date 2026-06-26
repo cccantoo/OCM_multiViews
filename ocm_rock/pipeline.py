@@ -14,7 +14,7 @@ from .ocm_mapping import (
 
 
 def generate_ocm_from_pointcloud(point_cloud_path: str, out_dir: str, cfg: OCMConfig, remove_outlier: bool = False) -> Dict:
-    """论文 Step 1-3 的一键实现：点云 -> NPW-OC骨架 -> OCM图像。"""
+    """Step 1-3 实现：点云 -> NPW-OC骨架 -> OCM图像。"""
     infos = generate_multi_view_ocm_from_pointcloud(point_cloud_path, out_dir, cfg, [0.0], remove_outlier)
     return infos[0]
 
@@ -26,7 +26,6 @@ def generate_multi_view_ocm_from_pointcloud(
     view_angles: Sequence[float],
     remove_outlier: bool = False,
 ) -> Sequence[Dict]:
-    """Generate one or more OCM images from the same point cloud with shared preprocessing."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     points, raw_colors = load_point_cloud(point_cloud_path)

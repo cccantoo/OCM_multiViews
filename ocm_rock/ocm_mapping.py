@@ -26,7 +26,7 @@ def icosahedron_vertices_faces() -> Tuple[np.ndarray, np.ndarray]:
 
 
 def generate_cdps(subdivision: int = 5) -> np.ndarray:
-    """论文 Step 2.2.1：正二十面体细分生成 CDPs，筛选上半球。"""
+    """Step 2.2.1：正二十面体细分生成 CDPs，筛选上半球。"""
     verts, faces = icosahedron_vertices_faces()
     vert_list = [tuple(v) for v in verts]
     for _ in range(subdivision):
@@ -55,7 +55,7 @@ def generate_cdps(subdivision: int = 5) -> np.ndarray:
 
 
 def rotation_to_z(v: np.ndarray) -> np.ndarray:
-    """论文 Eq.(11)-(13) 等价实现：将候选方向 v 旋转到 [0,0,1]。"""
+    """ 将候选方向 v 旋转到 [0,0,1]。"""
     v = v / (np.linalg.norm(v) + 1e-12)
     target = np.array([0.0, 0.0, 1.0])
     cross = np.cross(v, target)
@@ -72,21 +72,32 @@ def dip_angles(normals: np.ndarray) -> np.ndarray:
 
 
 def optimal_normal_rotation(normals: np.ndarray, cdps: np.ndarray, boundary_dip_angle: float = 85.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """论文 Step 2.2.2：MBDA 最小边界倾角和，选择最优旋转方向。"""
+    """Step 2.2.2：MBDA 最小边界倾角和，选择最优旋转方向。"""
     normals = hemispherize(normals)
-    boundary_mask = dip_angles(normals) > boundary_dip_angle
-    boundary = normals[boundary_mask]
-    if len(boundary) == 0:
-        return normals, np.eye(3), np.zeros(len(cdps))
+    if len(normals) == 0:
+        return normals, np.eye(3), np.zeros(len(cdps), dtype=np.float64)
+
+    score_normals = normals
+    max_score_normals = 120_000
+    if len(normals) > max_score_normals:
+        rng = np.random.default_rng(42)
+        score_ids = rng.choice(len(normals), max_score_normals, replace=False)
+        score_normals = normals[score_ids]
 
     sums = np.zeros(len(cdps), dtype=np.float64)
     rotations = []
     for i, cdp in enumerate(cdps):
         R = rotation_to_z(cdp)
         rotations.append(R)
-        rotated = boundary @ R.T
-        rotated = hemispherize(rotated)
-        sums[i] = dip_angles(rotated).sum()
+        rotated_z = score_normals @ R.T
+        rotated_z = rotated_z[:, 2]
+        dips = np.degrees(np.arccos(np.clip(np.abs(rotated_z), -1.0, 1.0)))
+        boundary = dips[dips > boundary_dip_angle]
+        if len(boundary) == 0:
+            sums[i] = 0.0
+        else:
+            # Penalize both the number of boundary normals and their closeness to dip=90.
+            sums[i] = float(np.sum(boundary - boundary_dip_angle) + 0.25 * len(boundary))
     best = int(np.argmin(sums))
     Rbest = rotations[best]
     rotated_all = hemispherize(normals @ Rbest.T)
@@ -94,7 +105,7 @@ def optimal_normal_rotation(normals: np.ndarray, cdps: np.ndarray, boundary_dip_
 
 
 def normals_to_rgb(normals: np.ndarray) -> np.ndarray:
-    """论文 Eq.(9)-(10)：将上半球法向量映射到 HSV 的 H/S，V=1，再转 RGB。"""
+    """ Eq.(9)-(10)：将上半球法向量映射到 HSV 的 H/S，V=1，再转 RGB。"""
     n = hemispherize(normals)
     x, y, z = n[:, 0], n[:, 1], n[:, 2]
     r_xy = np.sqrt(x * x + y * y) + 1e-12
@@ -110,7 +121,6 @@ def normals_to_rgb_adaptive_pca(
     percentile: float = 98.0,
     gain: float = 1.0,
 ) -> np.ndarray:
-    """Amplify small normal differences within one point cloud for easier 2D segmentation."""
     n = hemispherize(normals)
     center = np.median(n, axis=0)
     centered = n - center
@@ -152,7 +162,7 @@ def hsv_to_rgb(H: np.ndarray, S: np.ndarray, V: np.ndarray) -> np.ndarray:
 
 
 def calibrate_direction(points: np.ndarray, view_angle_deg: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
-    """论文 Step 3.1：绕 z 轴旋转，使整体拟合面法向量平行负 y 轴，并从 xoz 视角成像。"""
+    """ Step 3.1：绕 z 轴旋转，使整体拟合面法向量平行负 y 轴，并从 xoz 视角成像。"""
     normal = global_plane_normal(points)
     target = np.array([0.0, -1.0, 0.0])
     # 只考虑 xy 投影，绕 z 轴旋转。
@@ -165,7 +175,7 @@ def calibrate_direction(points: np.ndarray, view_angle_deg: float = 0.0) -> Tupl
 
 
 def normalize_xz_to_image(points_rot: np.ndarray, image_length: int = 800) -> Tuple[np.ndarray, int, int, Dict[str, float]]:
-    """将旋转后的 x,z 坐标映射为图像列/行。论文原文 Eq.(16) 文字存在 y/z 命名混排，这里按 xoz 视角使用 x 和 z。"""
+    """将旋转后的 x,z 坐标映射为图像列/行。"""
     x = points_rot[:, 0]
     z = points_rot[:, 2]
     x0 = x - x.min()
@@ -189,7 +199,7 @@ def project_xz_to_image(points_rot: np.ndarray, meta: Dict[str, float]) -> np.nd
     return np.stack([row, col], axis=1)
 
 
-def fill_ocm_image(
+def _fill_ocm_image_last_write(
     coords_rc: np.ndarray,
     colors: np.ndarray,
     sharp_mask: Optional[np.ndarray],
@@ -198,7 +208,7 @@ def fill_ocm_image(
     target_void_ratio: float = 0.10,
     max_fill_length: int = 15,
 ) -> Tuple[np.ndarray, int, float]:
-    """论文 Step 3.2：按 FL=1,3,5... 填充，直到 ratiovd<=0.1。sharp point 填黑作为交线提示。"""
+    """ Step 3.2：按 FL=1,3,5... 填充，直到 ratiovd<=0.1。sharp point 填黑作为交线提示。"""
     best_img, best_ratio, best_fl = None, 1e9, 1
     for fl in range(1, max_fill_length + 1, 2):
         img = np.zeros((H, W, 3), dtype=np.uint8)
@@ -211,6 +221,65 @@ def fill_ocm_image(
             r0, r1 = max(0, r - rad), min(H, r + rad + 1)
             c0, c1 = max(0, c - rad), min(W, c + rad + 1)
             img[r0:r1, c0:c1] = color
+        ratio = void_ratio(img)
+        best_img, best_ratio, best_fl = img, ratio, fl
+        if ratio <= target_void_ratio:
+            break
+    return best_img, best_fl, best_ratio
+
+
+def fill_ocm_image(
+    coords_rc: np.ndarray,
+    colors: np.ndarray,
+    sharp_mask: Optional[np.ndarray],
+    H: int,
+    W: int,
+    target_void_ratio: float = 0.10,
+    max_fill_length: int = 15,
+) -> Tuple[np.ndarray, int, float]:
+    """Fill OCM pixels by averaging all points that contribute to each pixel/window."""
+    valid = (
+        (coords_rc[:, 0] >= 0) & (coords_rc[:, 0] < H) &
+        (coords_rc[:, 1] >= 0) & (coords_rc[:, 1] < W)
+    )
+    rows = coords_rc[valid, 0].astype(np.int32)
+    cols = coords_rc[valid, 1].astype(np.int32)
+    point_colors = np.clip(colors[valid], 0.0, 1.0).astype(np.float64)
+    if sharp_mask is not None:
+        point_colors = point_colors.copy()
+        point_colors[sharp_mask[valid]] = 0.0
+
+    base_sum = np.zeros((H, W, 3), dtype=np.float64)
+    base_count = np.zeros((H, W), dtype=np.float64)
+    np.add.at(base_sum, (rows, cols), point_colors)
+    np.add.at(base_count, (rows, cols), 1.0)
+
+    best_img, best_ratio, best_fl = None, 1e9, 1
+    for fl in range(1, max_fill_length + 1, 2):
+        if fl == 1:
+            fill_sum = base_sum
+            fill_count = base_count
+        else:
+            from scipy.ndimage import convolve
+
+            kernel = np.ones((fl, fl), dtype=np.float64)
+            fill_count = convolve(base_count, kernel, mode="constant", cval=0.0)
+            fill_sum = np.stack(
+                [
+                    convolve(base_sum[:, :, ch], kernel, mode="constant", cval=0.0)
+                    for ch in range(3)
+                ],
+                axis=2,
+            )
+
+        img = np.zeros((H, W, 3), dtype=np.uint8)
+        filled = fill_count > 0
+        img[filled] = np.clip(
+            (fill_sum[filled] / fill_count[filled, None]) * 255.0,
+            0,
+            255,
+        ).astype(np.uint8)
+
         ratio = void_ratio(img)
         best_img, best_ratio, best_fl = img, ratio, fl
         if ratio <= target_void_ratio:
@@ -285,7 +354,7 @@ def void_ratio(img: np.ndarray) -> float:
     nonblack = np.any(img > 0, axis=2)
     if nonblack.sum() == 0:
         return 1.0
-    # 黑色像素且 8 邻域存在非黑像素，即论文定义的 void pixels。
+    # 黑色像素且 8 邻域存在非黑像素，即定义的 void pixels。
     from scipy.ndimage import binary_dilation
     neigh = binary_dilation(nonblack, structure=np.ones((3, 3), dtype=bool))
     void = (~nonblack) & neigh
