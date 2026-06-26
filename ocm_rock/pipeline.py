@@ -97,7 +97,7 @@ def write_ocm_view(
     points_view, R_view = calibrate_direction(points, view_angle)
     coords_rc, H, W, meta = normalize_xz_to_image(points_view, cfg.image_length)
     img, fl, ratio = fill_ocm_image(
-        coords_rc, ocm_colors, None, H, W,
+        coords_rc, ocm_colors, sharp_mask, H, W,
         cfg.target_void_ratio, cfg.max_fill_length
     )
     if cfg.draw_skeleton and len(skeleton) > 0:
