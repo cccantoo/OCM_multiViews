@@ -184,30 +184,25 @@ def npw_oriented_contraction(
     if len(sharp_idx) == 0:
         return np.empty((0, 3), dtype=np.float64)
 
-    shp = points[sharp_idx].copy()
-    # 收缩只在 sharp point 集合上做，邻域也来自 sharp point，符合“提取 sharp point skeleton”的意图。
+    if eigvals.shape[0] != len(points) or eigvecs.shape[0] != len(points):
+        raise ValueError("eigvals/eigvecs must correspond to the full input point cloud")
+
+    shp0 = points[sharp_idx]
+    shp = shp0.copy()
+    sharp_eigvals = eigvals[sharp_idx]
+    sharp_eigvecs = eigvecs[sharp_idx]
+    u1 = sharp_eigvals[:, 0] / (sharp_eigvals.sum(axis=1) + 1e-12)
+    wc = u1 ** 2
+    e2 = sharp_eigvecs[:, :, 1]
+
+    tree = cKDTree(shp0)
+    k = min(knn + 1, len(shp0))
+    _, local_idx = tree.query(shp0, k=k)
+    if local_idx.ndim == 1:
+        local_idx = local_idx[:, None]
+    local_idx = local_idx[:, 1:] if local_idx.shape[1] > 1 else local_idx
+
     for _ in range(iterations):
-        tree = cKDTree(shp)
-        k = min(knn + 1, len(shp))
-        _, local_idx = tree.query(shp, k=k)
-        if local_idx.ndim == 1:
-            local_idx = local_idx[:, None]
-        local_idx = local_idx[:, 1:] if local_idx.shape[1] > 1 else local_idx
-
-        # 每轮在当前 sharp 点上重新 PCA，保证收缩方向随骨架变化。
-        cur_eigvals = np.zeros((len(shp), 3))
-        cur_eigvecs = np.zeros((len(shp), 3, 3))
-        for i in range(len(shp)):
-            neigh = shp[local_idx[i]]
-            centered = neigh - shp[i]
-            cov = centered.T @ centered / max(1, len(neigh))
-            w, v = np.linalg.eigh(cov)
-            order = np.argsort(w)[::-1]
-            cur_eigvals[i] = w[order]
-            cur_eigvecs[i] = v[:, order]
-
-        u1 = cur_eigvals[:, 0] / (cur_eigvals.sum(axis=1) + 1e-12)
-        wc = u1 ** 2
         new_shp = shp.copy()
         for i in range(len(shp)):
             ids = local_idx[i]
@@ -216,11 +211,10 @@ def npw_oriented_contraction(
                 continue
             disp = (weights[:, None] * (shp[ids] - shp[i])).sum(axis=0) / weights.sum()
             # 定向校准：将位移投影到 e2，保持沿骨架方向的连续性。
-            e2 = cur_eigvecs[i, :, 1]
             disp_norm = np.linalg.norm(disp)
             if disp_norm < 1e-12:
                 continue
-            proj = np.dot(disp, e2) * e2
+            proj = np.dot(disp, e2[i]) * e2[i]
             proj_norm = np.linalg.norm(proj)
             if proj_norm < 1e-12:
                 new_shp[i] = shp[i] + disp
