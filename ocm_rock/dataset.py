@@ -14,6 +14,7 @@ class LabelMeMaskDataset(Dataset):
         self.root = Path(root)
         self.img_dir = self.root / split / "images"
         self.ann_dir = self.root / split / "annotations"
+        self.mask_dir = self.root / split / "masks"
         self.transforms = transforms
         self.images = sorted([p for p in self.img_dir.glob("*.png")])
         if not self.images:
@@ -27,22 +28,14 @@ class LabelMeMaskDataset(Dataset):
     def __getitem__(self, idx: int):
         img_path = self.images[idx]
         ann_path = self.ann_dir / (img_path.stem + ".json")
+        mask_path = self.mask_dir / (img_path.stem + ".png")
         img = Image.open(img_path).convert("RGB")
         W, H = img.size
         masks = []
         if ann_path.exists():
-            data = json.load(open(ann_path, "r", encoding="utf-8"))
-            for shape in data.get("shapes", []):
-                if shape.get("shape_type", "polygon") != "polygon":
-                    continue
-                pts = [tuple(p) for p in shape["points"]]
-                if len(pts) < 3:
-                    continue
-                m = Image.new("L", (W, H), 0)
-                ImageDraw.Draw(m).polygon(pts, outline=1, fill=1)
-                mask = np.array(m, dtype=np.uint8)
-                if mask.sum() > 10:
-                    masks.append(mask)
+            masks = load_labelme_masks(ann_path, (W, H))
+        elif mask_path.exists():
+            masks = load_instance_mask_png(mask_path)
         if len(masks) == 0:
             masks = np.zeros((0, H, W), dtype=np.uint8)
             boxes = np.zeros((0, 4), dtype=np.float32)
@@ -66,6 +59,34 @@ class LabelMeMaskDataset(Dataset):
         if self.transforms:
             image, target = self.transforms(image, target)
         return image, target
+
+
+def load_labelme_masks(ann_path: Path, image_size: Tuple[int, int]) -> List[np.ndarray]:
+    W, H = image_size
+    masks = []
+    data = json.load(open(ann_path, "r", encoding="utf-8"))
+    for shape in data.get("shapes", []):
+        if shape.get("shape_type", "polygon") != "polygon":
+            continue
+        pts = [tuple(p) for p in shape["points"]]
+        if len(pts) < 3:
+            continue
+        m = Image.new("L", (W, H), 0)
+        ImageDraw.Draw(m).polygon(pts, outline=1, fill=1)
+        mask = np.array(m, dtype=np.uint8)
+        if mask.sum() > 10:
+            masks.append(mask)
+    return masks
+
+
+def load_instance_mask_png(mask_path: Path) -> List[np.ndarray]:
+    instance_mask = np.array(Image.open(mask_path))
+    masks = []
+    for instance_id in sorted(int(x) for x in np.unique(instance_mask) if x > 0):
+        mask = (instance_mask == instance_id).astype(np.uint8)
+        if mask.sum() > 10:
+            masks.append(mask)
+    return masks
 
 
 def collate_fn(batch):
