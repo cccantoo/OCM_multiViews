@@ -20,8 +20,8 @@ def main():
     parser.add_argument("--out", required=True)
     parser.add_argument("--score", type=float, default=0.5)
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
-    parser.add_argument("--min_size", type=int, default=512)
-    parser.add_argument("--max_size", type=int, default=768)
+    parser.add_argument("--min_size", type=int, default=800)
+    parser.add_argument("--max_size", type=int, default=1333)
     args = parser.parse_args()
 
     cfg = OCMConfig()
