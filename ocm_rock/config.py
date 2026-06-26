@@ -5,7 +5,7 @@ from typing import Tuple
 @dataclass
 class OCMConfig:
     # 论文默认 knn=20：小 knn 噪声大，大 knn 会过度平滑局部曲率。
-    knn: int = 30
+    knn: int = 20
     # 论文默认 NPW-OC 两次收缩，在精度与效率间折中。
     contraction_iter: int = 2
     # 论文默认 CDP 细分 ndiv=5，对应 1321 个候选方向、平均邻近角 3.87°。
