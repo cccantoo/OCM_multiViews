@@ -188,7 +188,7 @@ def project_xz_to_image(points_rot: np.ndarray, meta: Dict[str, float]) -> np.nd
     return np.stack([row, col], axis=1)
 
 
-def _fill_ocm_image_last_write(
+def _fill_ocm_image_rectangles(
     coords_rc: np.ndarray,
     colors: np.ndarray,
     sharp_mask: Optional[np.ndarray],
@@ -199,10 +199,14 @@ def _fill_ocm_image_last_write(
 ) -> Tuple[np.ndarray, int, float]:
     """ Step 3.2：按 FL=1,3,5... 填充，直到 ratiovd<=0.1。sharp point 填黑作为交线提示。"""
     best_img, best_ratio, best_fl = None, 1e9, 1
+    fill_order = np.arange(len(coords_rc))
+    if sharp_mask is not None:
+        fill_order = np.concatenate([fill_order[~sharp_mask], fill_order[sharp_mask]])
     for fl in range(1, max_fill_length + 1, 2):
         img = np.zeros((H, W, 3), dtype=np.uint8)
         rad = fl // 2
-        for i, (r, c) in enumerate(coords_rc):
+        for i in fill_order:
+            r, c = coords_rc[i]
             if r < 0 or r >= H or c < 0 or c >= W:
                 continue
             # color = (colors[i] * 255).astype(np.uint8) # 不画尖点
@@ -226,54 +230,16 @@ def fill_ocm_image(
     target_void_ratio: float = 0.10,
     max_fill_length: int = 15,
 ) -> Tuple[np.ndarray, int, float]:
-    """Fill OCM pixels by averaging all points that contribute to each pixel/window."""
-    valid = (
-        (coords_rc[:, 0] >= 0) & (coords_rc[:, 0] < H) &
-        (coords_rc[:, 1] >= 0) & (coords_rc[:, 1] < W)
+    """Step 3.2: fill each point into an FL x FL rectangle as described in the paper."""
+    return _fill_ocm_image_rectangles(
+        coords_rc,
+        colors,
+        sharp_mask,
+        H,
+        W,
+        target_void_ratio,
+        max_fill_length,
     )
-    rows = coords_rc[valid, 0].astype(np.int32)
-    cols = coords_rc[valid, 1].astype(np.int32)
-    point_colors = np.clip(colors[valid], 0.0, 1.0).astype(np.float64)
-    if sharp_mask is not None:
-        point_colors = point_colors.copy()
-        point_colors[sharp_mask[valid]] = 0.0
-
-    base_sum = np.zeros((H, W, 3), dtype=np.float64)
-    base_count = np.zeros((H, W), dtype=np.float64)
-    np.add.at(base_sum, (rows, cols), point_colors)
-    np.add.at(base_count, (rows, cols), 1.0)
-
-    best_img, best_ratio, best_fl = None, 1e9, 1
-    for fl in range(1, max_fill_length + 1, 2):
-        if fl == 1:
-            fill_sum = base_sum
-            fill_count = base_count
-        else:
-            from scipy.ndimage import convolve
-
-            kernel = np.ones((fl, fl), dtype=np.float64)
-            fill_count = convolve(base_count, kernel, mode="constant", cval=0.0)
-            fill_sum = np.stack(
-                [
-                    convolve(base_sum[:, :, ch], kernel, mode="constant", cval=0.0)
-                    for ch in range(3)
-                ],
-                axis=2,
-            )
-
-        img = np.zeros((H, W, 3), dtype=np.uint8)
-        filled = fill_count > 0
-        img[filled] = np.clip(
-            (fill_sum[filled] / fill_count[filled, None]) * 255.0,
-            0,
-            255,
-        ).astype(np.uint8)
-
-        ratio = void_ratio(img)
-        best_img, best_ratio, best_fl = img, ratio, fl
-        if ratio <= target_void_ratio:
-            break
-    return best_img, best_fl, best_ratio
 
 
 def draw_skeleton_lines(
