@@ -110,6 +110,8 @@ def write_ocm_view(
                 radius=cfg.skeleton_filter_radius,
                 contrast_thresh=cfg.skeleton_color_contrast_thresh,
                 side_offset=cfg.skeleton_filter_side_offset,
+                contrast_percentile=cfg.skeleton_color_contrast_percentile,
+                min_contrast_thresh=cfg.skeleton_min_color_contrast_thresh,
             )
         elif cfg.skeleton_filter_mode not in ("none", None):
             raise ValueError(f"Unknown skeleton_filter_mode: {cfg.skeleton_filter_mode}")

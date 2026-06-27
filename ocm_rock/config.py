@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 @dataclass
@@ -29,7 +29,9 @@ class OCMConfig:
     skeleton_filter_mode: str = "color_contrast"
     skeleton_filter_radius: int = 3
     skeleton_filter_side_offset: int = 4
-    skeleton_color_contrast_thresh: float = 100.0
+    skeleton_color_contrast_thresh: Optional[float] = None
+    skeleton_color_contrast_percentile: float = 50.0
+    skeleton_min_color_contrast_thresh: float = 60.0
     # 统计滤波，可根据点云噪声调节；论文核心流程未强调去噪，这里作为工程输入前处理。
     statistical_nb_neighbors: int = 20
     statistical_std_ratio: float = 2.0

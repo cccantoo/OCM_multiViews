@@ -290,8 +290,10 @@ def filter_skeleton_by_color_contrast(
     img: np.ndarray,
     skeleton_rc: np.ndarray,
     radius: int = 3,
-    contrast_thresh: float = 35.0,
+    contrast_thresh: Optional[float] = None,
     side_offset: int = 4,
+    contrast_percentile: float = 50.0,
+    min_contrast_thresh: float = 60.0,
 ) -> np.ndarray:
     """Keep skeleton points whose two sides have enough OCM color contrast."""
     if len(skeleton_rc) == 0:
@@ -311,7 +313,7 @@ def filter_skeleton_by_color_contrast(
         return skeleton_rc[valid]
 
     tree = cKDTree(pts)
-    keep_valid = np.zeros(len(pts), dtype=bool)
+    contrasts = np.full(len(pts), np.nan, dtype=np.float64)
     k = min(9, len(pts))
     for local_i, point in enumerate(pts):
         _, nn_idx = tree.query(point, k=k)
@@ -322,7 +324,16 @@ def filter_skeleton_by_color_contrast(
         right = sample_patch_mean(img, point - side_offset * normal, radius)
         if left is None or right is None:
             continue
-        keep_valid[local_i] = np.linalg.norm(left - right) >= contrast_thresh
+        contrasts[local_i] = np.linalg.norm(left - right)
+    finite = np.isfinite(contrasts)
+    if not np.any(finite):
+        return np.empty((0, 2), dtype=skeleton_rc.dtype)
+    if contrast_thresh is None:
+        threshold = float(np.percentile(contrasts[finite], contrast_percentile))
+        threshold = max(threshold, float(min_contrast_thresh))
+    else:
+        threshold = float(contrast_thresh)
+    keep_valid = finite & (contrasts >= threshold)
     return skeleton_rc[valid_ids[keep_valid]]
 
 
