@@ -9,7 +9,7 @@ from .skeleton import detect_sharp_points, npw_oriented_contraction
 from .ocm_mapping import (
     generate_cdps, optimal_normal_rotation, normals_to_rgb, calibrate_direction,
     normals_to_rgb_adaptive_pca, normalize_xz_to_image, project_xz_to_image, fill_ocm_image,
-    draw_skeleton_lines, save_image
+    draw_skeleton_lines, filter_skeleton_by_color_contrast, save_image
 )
 
 
@@ -97,12 +97,22 @@ def write_ocm_view(
     points_view, R_view = calibrate_direction(points, view_angle)
     coords_rc, H, W, meta = normalize_xz_to_image(points_view, cfg.image_length)
     img, fl, ratio = fill_ocm_image(
-        coords_rc, ocm_colors, sharp_mask, H, W,
+        coords_rc, ocm_colors, None, H, W,
         cfg.target_void_ratio, cfg.max_fill_length
     )
     if cfg.draw_skeleton and len(skeleton) > 0:
         skeleton_view = skeleton @ R_view.T
         skeleton_rc = project_xz_to_image(skeleton_view, meta)
+        if cfg.skeleton_filter_mode == "color_contrast":
+            skeleton_rc = filter_skeleton_by_color_contrast(
+                img,
+                skeleton_rc,
+                radius=cfg.skeleton_filter_radius,
+                contrast_thresh=cfg.skeleton_color_contrast_thresh,
+                side_offset=cfg.skeleton_filter_side_offset,
+            )
+        elif cfg.skeleton_filter_mode not in ("none", None):
+            raise ValueError(f"Unknown skeleton_filter_mode: {cfg.skeleton_filter_mode}")
         img = draw_skeleton_lines(
             img,
             skeleton_rc,
@@ -130,6 +140,7 @@ def write_ocm_view(
         "point_count": int(len(points)),
         "sharp_point_count": int(sharp_mask.sum()),
         "skeleton_point_count": int(len(skeleton)),
+        "drawn_skeleton_point_count": int(len(skeleton_rc)),
         "ocm_image": str(out / "ocm_image.png"),
         "image_height": int(H),
         "image_width": int(W),

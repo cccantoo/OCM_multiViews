@@ -197,27 +197,26 @@ def _fill_ocm_image_rectangles(
     target_void_ratio: float = 0.10,
     max_fill_length: int = 15,
 ) -> Tuple[np.ndarray, int, float]:
-    """ Step 3.2：按 FL=1,3,5... 填充，直到 ratiovd<=0.1。sharp point 填黑作为交线提示。"""
+    """Step 3.2: fill OCM colors with FL rectangles and keep coverage separate from overlays."""
     best_img, best_ratio, best_fl = None, 1e9, 1
-    fill_order = np.arange(len(coords_rc))
-    if sharp_mask is not None:
-        fill_order = np.concatenate([fill_order[~sharp_mask], fill_order[sharp_mask]])
     for fl in range(1, max_fill_length + 1, 2):
         img = np.zeros((H, W, 3), dtype=np.uint8)
+        coverage = np.zeros((H, W), dtype=bool)
         rad = fl // 2
-        for i in fill_order:
-            r, c = coords_rc[i]
+        for i, (r, c) in enumerate(coords_rc):
             if r < 0 or r >= H or c < 0 or c >= W:
                 continue
-            # color = (colors[i] * 255).astype(np.uint8) # 不画尖点
-            color = np.array([0, 0, 0], dtype=np.uint8) if (sharp_mask is not None and sharp_mask[i]) else (colors[i] * 255).astype(np.uint8)
+            color = (colors[i] * 255).astype(np.uint8)
             r0, r1 = max(0, r - rad), min(H, r + rad + 1)
             c0, c1 = max(0, c - rad), min(W, c + rad + 1)
             img[r0:r1, c0:c1] = color
-        ratio = void_ratio(img)
+            coverage[r0:r1, c0:c1] = True
+        ratio = void_ratio_from_coverage(coverage)
         best_img, best_ratio, best_fl = img, ratio, fl
         if ratio <= target_void_ratio:
             break
+    if sharp_mask is not None:
+        draw_sharp_point_overlay(best_img, coords_rc, sharp_mask)
     return best_img, best_fl, best_ratio
 
 
@@ -287,6 +286,71 @@ def draw_skeleton_lines(
     return out
 
 
+def filter_skeleton_by_color_contrast(
+    img: np.ndarray,
+    skeleton_rc: np.ndarray,
+    radius: int = 3,
+    contrast_thresh: float = 35.0,
+    side_offset: int = 4,
+) -> np.ndarray:
+    """Keep skeleton points whose two sides have enough OCM color contrast."""
+    if len(skeleton_rc) == 0:
+        return skeleton_rc
+
+    H, W = img.shape[:2]
+    radius = max(1, int(radius))
+    side_offset = max(radius + 1, int(side_offset))
+
+    valid = (
+        (skeleton_rc[:, 0] >= 0) & (skeleton_rc[:, 0] < H) &
+        (skeleton_rc[:, 1] >= 0) & (skeleton_rc[:, 1] < W)
+    )
+    valid_ids = np.flatnonzero(valid)
+    pts = skeleton_rc[valid].astype(np.float64)
+    if len(pts) < 2:
+        return skeleton_rc[valid]
+
+    tree = cKDTree(pts)
+    keep_valid = np.zeros(len(pts), dtype=bool)
+    k = min(9, len(pts))
+    for local_i, point in enumerate(pts):
+        _, nn_idx = tree.query(point, k=k)
+        neighbors = pts[np.atleast_1d(nn_idx)]
+        tangent = local_tangent(neighbors)
+        normal = np.array([-tangent[1], tangent[0]], dtype=np.float64)
+        left = sample_patch_mean(img, point + side_offset * normal, radius)
+        right = sample_patch_mean(img, point - side_offset * normal, radius)
+        if left is None or right is None:
+            continue
+        keep_valid[local_i] = np.linalg.norm(left - right) >= contrast_thresh
+    return skeleton_rc[valid_ids[keep_valid]]
+
+
+def local_tangent(points_rc: np.ndarray) -> np.ndarray:
+    centered = points_rc - points_rc.mean(axis=0)
+    cov = centered.T @ centered / max(1, len(points_rc))
+    w, v = np.linalg.eigh(cov)
+    tangent = v[:, int(np.argmax(w))]
+    norm = np.linalg.norm(tangent)
+    if norm < 1e-12:
+        return np.array([1.0, 0.0], dtype=np.float64)
+    return tangent / norm
+
+
+def sample_patch_mean(img: np.ndarray, center_rc: np.ndarray, radius: int) -> Optional[np.ndarray]:
+    H, W = img.shape[:2]
+    r, c = np.round(center_rc).astype(np.int32)
+    if r < 0 or r >= H or c < 0 or c >= W:
+        return None
+    r0, r1 = max(0, r - radius), min(H, r + radius + 1)
+    c0, c1 = max(0, c - radius), min(W, c + radius + 1)
+    patch = img[r0:r1, c0:c1].reshape(-1, 3).astype(np.float32)
+    patch = patch[np.any(patch > 0, axis=1)]
+    if len(patch) == 0:
+        return None
+    return patch.mean(axis=0)
+
+
 def paint_disk(img: np.ndarray, r: int, c: int, radius: int) -> None:
     H, W = img.shape[:2]
     r0, r1 = max(0, r - radius), min(H, r + radius + 1)
@@ -307,13 +371,31 @@ def draw_line(img: np.ndarray, p0: np.ndarray, p1: np.ndarray, radius: int) -> N
 
 def void_ratio(img: np.ndarray) -> float:
     nonblack = np.any(img > 0, axis=2)
+    return void_ratio_from_coverage(nonblack)
+
+
+def void_ratio_from_coverage(coverage: np.ndarray) -> float:
+    nonblack = coverage.astype(bool)
     if nonblack.sum() == 0:
         return 1.0
-    # 黑色像素且 8 邻域存在非黑像素，即定义的 void pixels。
+    # Black pixels in the 8-neighborhood of covered pixels are void pixels.
     from scipy.ndimage import binary_dilation
     neigh = binary_dilation(nonblack, structure=np.ones((3, 3), dtype=bool))
     void = (~nonblack) & neigh
     return float(void.sum() / (nonblack.sum() + 1e-12))
+
+
+def draw_sharp_point_overlay(img: np.ndarray, coords_rc: np.ndarray, sharp_mask: np.ndarray) -> None:
+    H, W = img.shape[:2]
+    sharp_coords = coords_rc[sharp_mask]
+    valid = (
+        (sharp_coords[:, 0] >= 0) & (sharp_coords[:, 0] < H) &
+        (sharp_coords[:, 1] >= 0) & (sharp_coords[:, 1] < W)
+    )
+    if np.any(valid):
+        rows = sharp_coords[valid, 0].astype(np.int32)
+        cols = sharp_coords[valid, 1].astype(np.int32)
+        img[rows, cols] = 0
 
 
 def save_image(path: str, img: np.ndarray) -> None:

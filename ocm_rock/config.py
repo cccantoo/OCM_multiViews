@@ -26,6 +26,10 @@ class OCMConfig:
     skeleton_line_width: int = 1
     skeleton_link_neighbors: int = 3
     skeleton_max_link_px: float = 8.0
+    skeleton_filter_mode: str = "color_contrast"
+    skeleton_filter_radius: int = 3
+    skeleton_filter_side_offset: int = 4
+    skeleton_color_contrast_thresh: float = 100.0
     # 统计滤波，可根据点云噪声调节；论文核心流程未强调去噪，这里作为工程输入前处理。
     statistical_nb_neighbors: int = 20
     statistical_std_ratio: float = 2.0
