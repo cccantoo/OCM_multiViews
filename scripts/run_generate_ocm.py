@@ -37,6 +37,10 @@ def main():
     parser.add_argument("--knn", type=int, default=20)
     parser.add_argument("--remove_outlier", action="store_true")
     parser.add_argument("--views", default="0", help="Comma-separated view angles in degrees, e.g. 0,30,60,90")
+    parser.add_argument("--image_length", type=int, default=None)
+    parser.add_argument("--target_void_ratio", type=float, default=None)
+    parser.add_argument("--min_fill_length", type=int, default=None)
+    parser.add_argument("--max_fill_length", type=int, default=None)
     parser.add_argument("--color_mapping", choices=["physical", "adaptive_pca"], default=None)
     parser.add_argument("--color_aggregation", choices=["last", "mean"], default=None)
     parser.add_argument("--normal_smoothing_iter", type=int, default=None)
@@ -67,6 +71,14 @@ def main():
     args = parser.parse_args()
 
     cfg = OCMConfig(knn=args.knn)
+    if args.image_length is not None:
+        cfg.image_length = args.image_length
+    if args.target_void_ratio is not None:
+        cfg.target_void_ratio = args.target_void_ratio
+    if args.min_fill_length is not None:
+        cfg.min_fill_length = args.min_fill_length
+    if args.max_fill_length is not None:
+        cfg.max_fill_length = args.max_fill_length
     if args.color_mapping is not None:
         cfg.color_mapping = args.color_mapping
     if args.color_aggregation is not None:

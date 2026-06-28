@@ -102,7 +102,7 @@ def write_ocm_view(
     coords_rc, H, W, meta = normalize_xz_to_image(points_view, cfg.image_length)
     img, fl, ratio = fill_ocm_image(
         coords_rc, ocm_colors, sharp_mask if cfg.draw_sharp_points else None, H, W,
-        cfg.target_void_ratio, cfg.max_fill_length, cfg.color_aggregation
+        cfg.target_void_ratio, cfg.min_fill_length, cfg.max_fill_length, cfg.color_aggregation
     )
     skeleton_rc_raw = np.empty((0, 2), dtype=np.int32)
     if cfg.draw_skeleton and len(skeleton) > 0:

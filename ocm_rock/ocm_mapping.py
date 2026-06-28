@@ -195,6 +195,7 @@ def _fill_ocm_image_rectangles(
     H: int,
     W: int,
     target_void_ratio: float = 0.10,
+    min_fill_length: int = 1,
     max_fill_length: int = 15,
     color_aggregation: str = "last",
 ) -> Tuple[np.ndarray, int, float]:
@@ -206,8 +207,15 @@ def _fill_ocm_image_rectangles(
     else:
         point_colors = (colors * 255).astype(np.uint8)
 
-    best_img, best_ratio, best_fl = None, 1e9, 1
-    for fl in range(1, max_fill_length + 1, 2):
+    min_fill_length = max(1, int(min_fill_length))
+    max_fill_length = max(min_fill_length, int(max_fill_length))
+    if min_fill_length % 2 == 0:
+        min_fill_length += 1
+    if max_fill_length % 2 == 0:
+        max_fill_length -= 1
+
+    best_img, best_ratio, best_fl = None, 1e9, min_fill_length
+    for fl in range(min_fill_length, max_fill_length + 1, 2):
         img = np.zeros((H, W, 3), dtype=np.uint8)
         coverage = np.zeros((H, W), dtype=bool)
         rad = fl // 2
@@ -235,6 +243,7 @@ def fill_ocm_image(
     H: int,
     W: int,
     target_void_ratio: float = 0.10,
+    min_fill_length: int = 1,
     max_fill_length: int = 15,
     color_aggregation: str = "last",
 ) -> Tuple[np.ndarray, int, float]:
@@ -246,6 +255,7 @@ def fill_ocm_image(
         H,
         W,
         target_void_ratio,
+        min_fill_length,
         max_fill_length,
         color_aggregation,
     )

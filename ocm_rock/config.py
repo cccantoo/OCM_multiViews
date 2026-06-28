@@ -20,6 +20,7 @@ class OCMConfig:
     image_length: int = 800
     # 论文填充空洞阈值 ratiovd<=0.1，FL 按 1,3,5... 增加。
     target_void_ratio: float = 0.10
+    min_fill_length: int = 1
     max_fill_length: int = 15
     normal_smoothing_iter: int = 0
     color_aggregation: str = "last"
