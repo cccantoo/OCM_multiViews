@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from scipy.ndimage import binary_closing, binary_dilation, label
+from scipy.ndimage import binary_closing, distance_transform_edt, label
 
 try:
     from skimage.morphology import skeletonize as skimage_skeletonize
@@ -157,16 +157,16 @@ def prune_spurs(mask: np.ndarray, iterations: int) -> np.ndarray:
     return out
 
 
-def paint_overlay(base_rgb: np.ndarray, line_mask: np.ndarray, line_width: int) -> np.ndarray:
-    out = base_rgb.copy()
-    if line_width > 1:
-        radius = max(0, int(line_width) // 2)
-        line_mask = binary_dilation(
-            line_mask,
-            structure=np.ones((2 * radius + 1, 2 * radius + 1), dtype=bool),
-        )
-    out[line_mask] = 0
-    return out
+def paint_overlay(base_rgb: np.ndarray, line_mask: np.ndarray, line_width: float) -> np.ndarray:
+    width = max(0.1, float(line_width))
+    dist = distance_transform_edt(~line_mask)
+    solid_radius = max(0.0, (width - 1.0) / 2.0)
+    feather = 0.75
+    alpha = np.clip((solid_radius + feather - dist) / feather, 0.0, 1.0)
+    alpha[line_mask] = 1.0
+    out = base_rgb.astype(np.float32)
+    out = out * (1.0 - alpha[..., None])
+    return np.clip(out, 0, 255).astype(np.uint8)
 
 
 def main():
@@ -194,7 +194,7 @@ def main():
     parser.add_argument("--min_component_pixels", type=int, default=20, help="Remove small connected components")
     parser.add_argument("--prune_iterations", type=int, default=4, help="Endpoint pruning iterations after thinning")
     parser.add_argument("--thin_method", choices=["skimage", "zhang_suen"], default="skimage")
-    parser.add_argument("--line_width", type=int, default=1, help="Overlay line width in pixels")
+    parser.add_argument("--line_width", type=float, default=1.0, help="Overlay line width in pixels; decimals are allowed")
     args = parser.parse_args()
 
     ocm_dir = Path(args.ocm_dir)
@@ -248,7 +248,7 @@ def main():
         "min_component_pixels": int(args.min_component_pixels),
         "prune_iterations": int(args.prune_iterations),
         "thin_method": args.thin_method,
-        "line_width": int(args.line_width),
+        "line_width": float(args.line_width),
         "input_pixels": int(mask.sum()),
         "component_pixels": int(component_mask.sum()),
         "centerline_pixels": int(centerline.sum()),
