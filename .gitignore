@@ -8,6 +8,10 @@ outputs/
 
 # 大数据文件
 data/pointclouds/*.txt
+data/pointclouds/**/*.txt
+
+# 临时分析文件
+tmp/
 
 # Python 缓存
 __pycache__/
