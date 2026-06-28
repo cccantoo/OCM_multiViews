@@ -21,6 +21,15 @@ def parse_views(value: str):
     return views
 
 
+def parse_optional_float(value: str):
+    if value.lower() in {"none", "null", "off"}:
+        return None
+    return float(value)
+
+
+UNSET = object()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate OCM image(s) and NPW-OC skeleton lines")
     parser.add_argument("--point_cloud", required=True, help="Input point cloud: txt/xyz/csv/ply/pcd")
@@ -31,6 +40,17 @@ def main():
     parser.add_argument("--color_mapping", choices=["physical", "adaptive_pca"], default=None)
     parser.add_argument("--adaptive_color_percentile", type=float, default=None)
     parser.add_argument("--adaptive_color_gain", type=float, default=None)
+    parser.add_argument("--sharp_threshold_mode", choices=["paper_mean", "mean_std", "percentile"], default=None)
+    parser.add_argument("--sharp_percentile", type=float, default=None)
+    parser.add_argument("--sharp_mean_std_alpha", type=float, default=None)
+    parser.add_argument("--sharp_min_angle_deg", type=float, default=None)
+    parser.add_argument("--sharp_max_ratio", type=parse_optional_float, default=UNSET)
+    parser.add_argument(
+        "--draw_sharp_points",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Overlay raw sharp points during OCM filling, matching the paper-style visual cue.",
+    )
     parser.add_argument(
         "--draw_skeleton",
         action=argparse.BooleanOptionalAction,
@@ -40,6 +60,8 @@ def main():
     parser.add_argument("--skeleton_line_width", type=int, default=None)
     parser.add_argument("--skeleton_link_neighbors", type=int, default=None)
     parser.add_argument("--skeleton_max_link_px", type=float, default=None)
+    parser.add_argument("--skeleton_filter_mode", choices=["color_contrast", "none"], default=None)
+    parser.add_argument("--skeleton_min_color_contrast_thresh", type=parse_optional_float, default=UNSET)
     args = parser.parse_args()
 
     cfg = OCMConfig(knn=args.knn)
@@ -49,6 +71,18 @@ def main():
         cfg.adaptive_color_percentile = args.adaptive_color_percentile
     if args.adaptive_color_gain is not None:
         cfg.adaptive_color_gain = args.adaptive_color_gain
+    if args.sharp_threshold_mode is not None:
+        cfg.sharp_threshold_mode = args.sharp_threshold_mode
+    if args.sharp_percentile is not None:
+        cfg.sharp_percentile = args.sharp_percentile
+    if args.sharp_mean_std_alpha is not None:
+        cfg.sharp_mean_std_alpha = args.sharp_mean_std_alpha
+    if args.sharp_min_angle_deg is not None:
+        cfg.sharp_min_angle_deg = args.sharp_min_angle_deg
+    if args.sharp_max_ratio is not UNSET:
+        cfg.sharp_max_ratio = args.sharp_max_ratio
+    if args.draw_sharp_points is not None:
+        cfg.draw_sharp_points = args.draw_sharp_points
     if args.draw_skeleton is not None:
         cfg.draw_skeleton = args.draw_skeleton
     if args.skeleton_line_width is not None:
@@ -57,6 +91,10 @@ def main():
         cfg.skeleton_link_neighbors = args.skeleton_link_neighbors
     if args.skeleton_max_link_px is not None:
         cfg.skeleton_max_link_px = args.skeleton_max_link_px
+    if args.skeleton_filter_mode is not None:
+        cfg.skeleton_filter_mode = None if args.skeleton_filter_mode == "none" else args.skeleton_filter_mode
+    if args.skeleton_min_color_contrast_thresh is not UNSET:
+        cfg.skeleton_min_color_contrast_thresh = args.skeleton_min_color_contrast_thresh
 
     infos = generate_multi_view_ocm_from_pointcloud(
         args.point_cloud,

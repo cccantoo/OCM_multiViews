@@ -21,6 +21,12 @@ class OCMConfig:
     # 论文填充空洞阈值 ratiovd<=0.1，FL 按 1,3,5... 增加。
     target_void_ratio: float = 0.10
     max_fill_length: int = 15
+    sharp_threshold_mode: str = "percentile"
+    sharp_percentile: float = 95.0
+    sharp_mean_std_alpha: float = 1.0
+    sharp_min_angle_deg: float = 8.0
+    sharp_max_ratio: Optional[float] = 0.05
+    draw_sharp_points: bool = False
     # 将 NPW-OC 收缩后的 sharp skeleton 作为连续黑色交线叠加到 OCM 图像上。
     draw_skeleton: bool = True
     skeleton_line_width: int = 1

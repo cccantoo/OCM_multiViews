@@ -40,10 +40,11 @@ def generate_multi_view_ocm_from_pointcloud(
     sharp_mask, delta = detect_sharp_points(
         normals=normals,
         nn_idx=nn_idx,
-        threshold_mode="percentile",
-        percentile=95.0,
-        min_angle_deg=8.0,
-        max_sharp_ratio=0.05,
+        threshold_mode=cfg.sharp_threshold_mode,
+        percentile=cfg.sharp_percentile,
+        mean_std_alpha=cfg.sharp_mean_std_alpha,
+        min_angle_deg=cfg.sharp_min_angle_deg,
+        max_sharp_ratio=cfg.sharp_max_ratio,
     )
     # 修改为可控阈值
     skeleton = npw_oriented_contraction(points, sharp_mask, eigvals, eigvecs, cfg.knn, cfg.contraction_iter)
@@ -97,12 +98,14 @@ def write_ocm_view(
     points_view, R_view = calibrate_direction(points, view_angle)
     coords_rc, H, W, meta = normalize_xz_to_image(points_view, cfg.image_length)
     img, fl, ratio = fill_ocm_image(
-        coords_rc, ocm_colors, None, H, W,
+        coords_rc, ocm_colors, sharp_mask if cfg.draw_sharp_points else None, H, W,
         cfg.target_void_ratio, cfg.max_fill_length
     )
+    skeleton_rc_raw = np.empty((0, 2), dtype=np.int32)
     if cfg.draw_skeleton and len(skeleton) > 0:
         skeleton_view = skeleton @ R_view.T
         skeleton_rc = project_xz_to_image(skeleton_view, meta)
+        skeleton_rc_raw = skeleton_rc.copy()
         if cfg.skeleton_filter_mode == "color_contrast":
             skeleton_rc = filter_skeleton_by_color_contrast(
                 img,
@@ -131,6 +134,7 @@ def write_ocm_view(
     np.save(out / "normals.npy", normals)
     np.save(out / "sharp_mask.npy", sharp_mask)
     np.save(out / "sharp_skeleton.npy", skeleton)
+    np.save(out / "skeleton_coords_rc_raw.npy", skeleton_rc_raw)
     np.save(out / "skeleton_coords_rc.npy", skeleton_rc)
     np.save(out / "coords_rc.npy", coords_rc)
     np.save(out / "ocm_colors.npy", ocm_colors)
@@ -142,6 +146,7 @@ def write_ocm_view(
         "point_count": int(len(points)),
         "sharp_point_count": int(sharp_mask.sum()),
         "skeleton_point_count": int(len(skeleton)),
+        "projected_skeleton_point_count": int(len(skeleton_rc_raw)),
         "drawn_skeleton_point_count": int(len(skeleton_rc)),
         "ocm_image": str(out / "ocm_image.png"),
         "image_height": int(H),
