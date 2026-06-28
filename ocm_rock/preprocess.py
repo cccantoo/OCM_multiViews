@@ -50,6 +50,20 @@ def pca_normals(points: np.ndarray, knn: int = 20) -> Tuple[np.ndarray, np.ndarr
     return normals, eigvals, eigvecs, nn_idx
 
 
+def smooth_normals(normals: np.ndarray, nn_idx: np.ndarray, iterations: int = 1) -> np.ndarray:
+    """Average neighboring normals while preserving upper-hemisphere orientation."""
+    if iterations <= 0:
+        return normals
+    smoothed = hemispherize(normals)
+    for _ in range(iterations):
+        neigh = smoothed[nn_idx]
+        aligned = neigh.copy()
+        dots = np.sum(aligned * smoothed[:, None, :], axis=2)
+        aligned[dots < 0] *= -1.0
+        smoothed = hemispherize(smoothed + aligned.mean(axis=1))
+    return smoothed
+
+
 def hemispherize(normals: np.ndarray) -> np.ndarray:
     """半球化：z<0 的法向量反向，使其落到上半球。"""
     normals = normals.copy()

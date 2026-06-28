@@ -196,8 +196,16 @@ def _fill_ocm_image_rectangles(
     W: int,
     target_void_ratio: float = 0.10,
     max_fill_length: int = 15,
+    color_aggregation: str = "last",
 ) -> Tuple[np.ndarray, int, float]:
     """Step 3.2: fill OCM colors with FL rectangles and keep coverage separate from overlays."""
+    if color_aggregation not in ("last", "mean"):
+        raise ValueError("color_aggregation must be 'last' or 'mean'")
+    if color_aggregation == "mean":
+        point_colors = aggregate_pixel_colors(coords_rc, colors, H, W)
+    else:
+        point_colors = (colors * 255).astype(np.uint8)
+
     best_img, best_ratio, best_fl = None, 1e9, 1
     for fl in range(1, max_fill_length + 1, 2):
         img = np.zeros((H, W, 3), dtype=np.uint8)
@@ -206,7 +214,7 @@ def _fill_ocm_image_rectangles(
         for i, (r, c) in enumerate(coords_rc):
             if r < 0 or r >= H or c < 0 or c >= W:
                 continue
-            color = (colors[i] * 255).astype(np.uint8)
+            color = point_colors[i]
             r0, r1 = max(0, r - rad), min(H, r + rad + 1)
             c0, c1 = max(0, c - rad), min(W, c + rad + 1)
             img[r0:r1, c0:c1] = color
@@ -228,6 +236,7 @@ def fill_ocm_image(
     W: int,
     target_void_ratio: float = 0.10,
     max_fill_length: int = 15,
+    color_aggregation: str = "last",
 ) -> Tuple[np.ndarray, int, float]:
     """Step 3.2: fill each point into an FL x FL rectangle as described in the paper."""
     return _fill_ocm_image_rectangles(
@@ -238,7 +247,29 @@ def fill_ocm_image(
         W,
         target_void_ratio,
         max_fill_length,
+        color_aggregation,
     )
+
+
+def aggregate_pixel_colors(coords_rc: np.ndarray, colors: np.ndarray, H: int, W: int) -> np.ndarray:
+    valid = (
+        (coords_rc[:, 0] >= 0) & (coords_rc[:, 0] < H) &
+        (coords_rc[:, 1] >= 0) & (coords_rc[:, 1] < W)
+    )
+    out = (colors * 255).astype(np.uint8)
+    if not np.any(valid):
+        return out
+
+    flat = coords_rc[valid, 0].astype(np.int64) * int(W) + coords_rc[valid, 1].astype(np.int64)
+    sums = np.zeros((H * W, 3), dtype=np.float64)
+    counts = np.zeros(H * W, dtype=np.int64)
+    np.add.at(sums, flat, colors[valid])
+    np.add.at(counts, flat, 1)
+    means = np.zeros_like(sums)
+    occupied = counts > 0
+    means[occupied] = sums[occupied] / counts[occupied, None]
+    out[valid] = np.clip(means[flat] * 255, 0, 255).astype(np.uint8)
+    return out
 
 
 def draw_skeleton_lines(

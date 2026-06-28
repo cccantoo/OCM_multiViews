@@ -38,6 +38,8 @@ def main():
     parser.add_argument("--remove_outlier", action="store_true")
     parser.add_argument("--views", default="0", help="Comma-separated view angles in degrees, e.g. 0,30,60,90")
     parser.add_argument("--color_mapping", choices=["physical", "adaptive_pca"], default=None)
+    parser.add_argument("--color_aggregation", choices=["last", "mean"], default=None)
+    parser.add_argument("--normal_smoothing_iter", type=int, default=None)
     parser.add_argument("--adaptive_color_percentile", type=float, default=None)
     parser.add_argument("--adaptive_color_gain", type=float, default=None)
     parser.add_argument("--sharp_threshold_mode", choices=["paper_mean", "mean_std", "percentile"], default=None)
@@ -67,6 +69,10 @@ def main():
     cfg = OCMConfig(knn=args.knn)
     if args.color_mapping is not None:
         cfg.color_mapping = args.color_mapping
+    if args.color_aggregation is not None:
+        cfg.color_aggregation = args.color_aggregation
+    if args.normal_smoothing_iter is not None:
+        cfg.normal_smoothing_iter = args.normal_smoothing_iter
     if args.adaptive_color_percentile is not None:
         cfg.adaptive_color_percentile = args.adaptive_color_percentile
     if args.adaptive_color_gain is not None:

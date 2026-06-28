@@ -4,7 +4,7 @@ import numpy as np
 
 from .config import OCMConfig
 from .io_utils import load_point_cloud, write_json
-from .preprocess import statistical_outlier_filter, pca_normals
+from .preprocess import statistical_outlier_filter, pca_normals, smooth_normals
 from .skeleton import detect_sharp_points, npw_oriented_contraction
 from .ocm_mapping import (
     generate_cdps, optimal_normal_rotation, normals_to_rgb, calibrate_direction,
@@ -35,7 +35,8 @@ def generate_multi_view_ocm_from_pointcloud(
         points = points[keep]
         raw_colors = raw_colors[keep] if raw_colors is not None else None
 
-    normals, eigvals, eigvecs, nn_idx = pca_normals(points, cfg.knn)
+    normals_raw, eigvals, eigvecs, nn_idx = pca_normals(points, cfg.knn)
+    normals = smooth_normals(normals_raw, nn_idx, cfg.normal_smoothing_iter)
     # sharp_mask, delta = detect_sharp_points(normals, nn_idx) # 论文原始设置的尖点阈值
     sharp_mask, delta = detect_sharp_points(
         normals=normals,
@@ -72,6 +73,7 @@ def generate_multi_view_ocm_from_pointcloud(
             point_cloud_path,
             points,
             normals,
+            normals_raw,
             sharp_mask,
             skeleton,
             ocm_colors,
@@ -88,6 +90,7 @@ def write_ocm_view(
     point_cloud_path: str,
     points: np.ndarray,
     normals: np.ndarray,
+    normals_raw: np.ndarray,
     sharp_mask: np.ndarray,
     skeleton: np.ndarray,
     ocm_colors: np.ndarray,
@@ -99,7 +102,7 @@ def write_ocm_view(
     coords_rc, H, W, meta = normalize_xz_to_image(points_view, cfg.image_length)
     img, fl, ratio = fill_ocm_image(
         coords_rc, ocm_colors, sharp_mask if cfg.draw_sharp_points else None, H, W,
-        cfg.target_void_ratio, cfg.max_fill_length
+        cfg.target_void_ratio, cfg.max_fill_length, cfg.color_aggregation
     )
     skeleton_rc_raw = np.empty((0, 2), dtype=np.int32)
     if cfg.draw_skeleton and len(skeleton) > 0:
@@ -132,6 +135,7 @@ def write_ocm_view(
     np.save(out / "points.npy", points)
     np.save(out / "points_view.npy", points_view)
     np.save(out / "normals.npy", normals)
+    np.save(out / "normals_raw.npy", normals_raw)
     np.save(out / "sharp_mask.npy", sharp_mask)
     np.save(out / "sharp_skeleton.npy", skeleton)
     np.save(out / "skeleton_coords_rc_raw.npy", skeleton_rc_raw)
