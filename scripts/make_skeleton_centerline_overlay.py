@@ -160,9 +160,7 @@ def prune_spurs(mask: np.ndarray, iterations: int) -> np.ndarray:
 def paint_overlay(base_rgb: np.ndarray, line_mask: np.ndarray, line_width: float) -> np.ndarray:
     width = max(0.1, float(line_width))
     dist = distance_transform_edt(~line_mask)
-    solid_radius = max(0.0, (width - 1.0) / 2.0)
-    feather = 0.75
-    alpha = np.clip((solid_radius + feather - dist) / feather, 0.0, 1.0)
+    alpha = np.clip(width - dist, 0.0, 1.0)
     alpha[line_mask] = 1.0
     out = base_rgb.astype(np.float32)
     out = out * (1.0 - alpha[..., None])
